@@ -12,7 +12,7 @@ export const Addons: CollectionConfig = {
   },
   access: {
     create: ({ req: { user } }) => Boolean(user),
-    read: ({ req: { user } }) => Boolean(user),
+    read: () => true,
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) => Boolean(user),
   },

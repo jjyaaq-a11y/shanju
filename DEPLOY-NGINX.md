@@ -11,11 +11,81 @@
    本地执行 `npm run build` 后，只把 **构建产物** 上传到服务器，在服务器上只运行 Node，不装 npm、不跑 build。  
    本项目已开启 `output: "standalone"`，构建后会生成精简的独立目录，部署时只需上传该目录，占用小、启动快。
 
-下面按 **方式 B（standalone）** 说明，并附 Nginx 配置。
+下面先给 **方式 A（在服务器上拉 Git 并构建）** 的完整步骤（推荐 Linux 部署、避免 sharp 跨平台问题），再按 **方式 B（standalone）** 说明本机打包。
 
 ---
 
-## 一、本地构建（在你电脑上）
+## 方式 A：在服务器上拉 Git 并直接运行（推荐 Linux 部署）
+
+在服务器上克隆代码、构建后**直接用 `npm run start` 跑**，不打包、不拷贝 standalone，sharp 和 Node 环境一致，更新时 `git pull` + 重新 build + 重启即可。
+
+**1. 安装 Node 20+（若未装）**
+
+```bash
+sudo dnf install -y nodejs
+node -v   # 建议 v20+
+```
+
+**2. 克隆仓库、安装依赖、构建**
+
+```bash
+cd /var/www
+sudo git clone https://github.com/你的用户名/shanju.git shanju
+cd shanju
+sudo npm install
+sudo npm run build
+```
+
+**3. 用 systemd 保活（工作目录就是源码目录）**
+
+创建 `/etc/systemd/system/shanju.service`：
+
+```ini
+[Unit]
+Description=Shanju Next.js
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/shanju
+ExecStart=/usr/bin/npm run start
+Restart=on-failure
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=0.0.0.0
+
+[Install]
+WantedBy=multi-user.target
+```
+
+然后：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable shanju
+sudo systemctl start shanju
+```
+
+Nginx 反代到 `http://127.0.0.1:3000` 不变。`payload.db` 会写在 `/var/www/shanju`。
+
+**4. 以后更新**
+
+```bash
+cd /var/www/shanju
+sudo git pull
+sudo npm install
+sudo npm run build
+sudo systemctl restart shanju
+```
+
+无需打包、无需拷贝，四步完成。
+
+**环境变量（可选）**：在 `[Service]` 里加 `Environment=PAYLOAD_SECRET=xxx`，或 `EnvironmentFile=/var/www/shanju/.env`。
+
+---
+
+## 一、本地构建（在你电脑上，方式 B）
 
 **一键打包（推荐，Mac 上直接得到上传用 zip）：**
 
@@ -25,6 +95,9 @@ npm run pack
 ```
 
 会依次执行：取消代理 → `npm run build` → 拷贝 `.next/static` 和 `public` 进 standalone → 打出 `shanju-standalone.zip`。完成后在项目根目录得到 **`shanju-standalone.zip`**，直接上传服务器即可。
+
+**重要：若服务器是 Linux，必须在 Linux 上构建。**  
+在 Mac 上打的包里的 **sharp**（图片处理）是 darwin 原生模块，到 Linux 上会报 `Could not load the "sharp" module using the linux-x64 runtime`。解决：在 **Linux 环境** 执行 `npm run pack`（如 GitHub Actions、Docker 用 linux 镜像、或另一台 Linux 机器），再把得到的 zip 上传到服务器。若暂时只能在 Mac 上打包，可改用 **方式 A**：在服务器上拉源码后执行 `npm install && npm run build`，用本机生成的 linux 版 sharp。
 
 ---
 
@@ -157,6 +230,51 @@ sudo systemctl start shanju
 
 ---
 
+### 报错日志在哪里看？
+
+**1. Node / Next 应用**
+
+| 运行方式 | 看日志的命令或文件 |
+|----------|----------------------|
+| **systemd** | `sudo journalctl -u shanju -f` 实时看；`sudo journalctl -u shanju -n 200` 最近 200 条；`sudo journalctl -u shanju --since "1 hour ago"` 最近 1 小时 |
+| **nohup 后台** | 部署目录下的 `nohup.out`，例如 `tail -f /var/www/shanju/nohup.out` |
+| **PM2** | `pm2 logs` 或 `pm2 logs shanju`（若服务名为 shanju） |
+
+**2. Nginx**
+
+- 错误日志：`/var/log/nginx/error.log`，例如 `sudo tail -f /var/log/nginx/error.log`
+- 访问日志：`/var/log/nginx/access.log`
+
+**3. 若希望把应用日志写到文件**
+
+不推荐在 service 里用 `StandardOutput=append:/var/log/shanju.log`：需要 systemd 较新版本（≥236），且可能遇到权限或路径问题。**推荐直接用 `journalctl -u shanju` 查日志**。
+
+若必须落盘到文件，可用 ExecStart 通过 shell 重定向（兼容所有 systemd 版本）：
+
+```ini
+[Service]
+...
+ExecStart=/bin/sh -c 'exec /usr/bin/node server.js >> /var/log/shanju.log 2>&1'
+```
+
+先创建文件并赋权：`sudo touch /var/log/shanju.log && sudo chown root:root /var/log/shanju.log`，再 `daemon-reload` 与 `restart`。
+
+---
+
+### 常见报错：Sharp / File is not defined
+
+**1. `Could not load the "sharp" module using the linux-x64 runtime`**
+
+- **原因**：在 Mac（darwin）上执行了 `npm run pack`，standalone 里的 sharp 是 Mac 版，在 Linux 服务器上无法加载。
+- **解决**：在 **Linux** 上构建再部署（见上文「重要：若服务器是 Linux」）。或改用 **方式 A**：在服务器上 `git clone` / 上传源码，执行 `npm install && npm run build`，然后只运行 `.next/standalone` 里的 `node server.js`（此时 sharp 为 linux 版）。
+
+**2. `ReferenceError: File is not defined`**
+
+- **原因**：全局 `File` 在 Node 18 及以下不存在（Node 20+ 才有）。Payload/媒体上传等可能用到。
+- **解决**：服务器上使用 **Node.js 20 或 22**：`node -v` 若低于 20，请用 NodeSource 或 nvm 安装 Node 20 后再启动应用。
+
+---
+
 ## 四、Nginx 反向代理
 
 在 Nginx 里把域名（或 80 端口）反代到本机 3000。
@@ -194,7 +312,93 @@ sudo systemctl reload nginx
 
 ---
 
-## 五、简要流程回顾
+### 仅使用 443 端口（80 已被占用时）
+
+若 80 端口已被占用，只对外提供 **HTTPS（443）**，可用下面配置。**必须先有 SSL 证书**（见下方 certbot 步骤）。
+
+**Nginx 配置示例**（`/etc/nginx/sites-available/shanju`）：
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name your-domain.com;   # 改成你的域名
+
+    ssl_certificate     /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+**获取免费证书（Let’s Encrypt）**：若 80 暂时可用，可用 certbot 申请（申请时 certbot 会临时占用 80）：
+
+```bash
+sudo dnf install -y certbot python3-certbot-nginx   # Amazon Linux 2023
+# 或 Ubuntu: sudo apt install -y certbot python3-certbot-nginx
+
+sudo certbot --nginx -d your-domain.com
+```
+
+若 **80 完全不能开**，可用 DNS 验证（无需 80）：
+
+```bash
+sudo certbot certonly --manual --preferred-challenges dns -d your-domain.com
+# 按提示在域名服务商处添加 TXT 记录，验证通过后证书在 /etc/letsencrypt/live/your-domain.com/
+```
+
+把上面 Nginx 里的 `your-domain.com` 和证书路径改成你的域名和实际路径，然后：
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+访问时用 **https://your-domain.com**（无需开 80）。
+
+---
+
+## 五、部署后：数据库与首次使用
+
+应用跑起来后，**需要做两件事**（若使用 Payload 后台 + SQLite）：
+
+### 1. 数据库会自动创建，无需手动建库
+
+- Payload 使用 SQLite 时，**首次访问** Payload 相关接口（例如打开 `/admin` 或请求 `/api`）时，会在**当前工作目录**自动创建 `payload.db` 并建表。
+- 因此：
+  - 确保运行 Node 的用户对部署目录有**写权限**（如 `/var/www/shanju`），否则会报错无法创建数据库文件。
+  - 若通过环境变量指定了 `DATABASE_URL`（如 `file:/var/lib/shanju/payload.db`），则需保证该路径所在目录存在且可写。
+- **standalone 包里不包含** `payload.db`，所以每台新机器第一次跑都会自动生成一个新的空库。
+
+### 2. 创建第一个管理员账号（必做）
+
+- 浏览器打开：**https://你的域名/admin**
+- 若数据库里还没有用户，Payload 会显示「创建第一个用户」页面。
+- 按提示填写邮箱（如 `admin@example.com`）和密码，提交即可。之后用该账号登录后台管理路线、媒体等。
+
+### 3. 预置路线数据（可选）
+
+- **方式 A**：在后台 **/admin** 里手动添加路线、价格、每日行程等。
+- **方式 B**：若你有现成的 `payload.db`（如在本地跑过 `npm run dev` 并执行过 `npm run seed:routes`），可把该文件上传到服务器部署目录，覆盖或替换服务器上自动生成的空库（注意先停掉 Node 再替换，再启动）。
+- **方式 C**：在服务器上执行种子脚本（需先安装 `sqlite3`，且应用至少启动过一次以生成 `payload.db` 和表结构）：
+  ```bash
+  cd /var/www/shanju
+  sqlite3 payload.db < /path/to/scripts/seed-routes.sql
+  ```
+  脚本路径需根据你实际上传的 `scripts/seed-routes.sql` 位置调整；若 standalone 里没有该脚本，可从本机项目拷贝一份到服务器。
+
+---
+
+## 六、简要流程回顾
 
 | 步骤 | 位置     | 操作 |
 |------|----------|------|
@@ -207,7 +411,7 @@ sudo systemctl reload nginx
 
 ---
 
-## 六、不想重新打包时，怎么在服务器上直接改？
+## 七、不想重新打包时，怎么在服务器上直接改？
 
 **结论：** 文案、多语言、页面逻辑都已经被编译进 `.next` 里的 JS，**没有「改源文件再生效」的通道**，只能二选一：**在服务器上拉源码并构建**，或 **本机改完再打包上传**。下面是可以「直接在服务器动」的几种方式。
 
@@ -253,7 +457,7 @@ sudo grep -r "要改的原文" .next --include="*.js" -l
 
 改完后重启 Node 进程（如 `sudo systemctl restart shanju`）。**不推荐**长期用这种方式，只适合临时、小改动且接受风险时。
 
-### 3. 不用动「代码包」、只在服务器改的配置
+### 3. 不动「代码包」、只在服务器改的配置
 
 这些**不需要重新打包**，直接在服务器改即可：
 

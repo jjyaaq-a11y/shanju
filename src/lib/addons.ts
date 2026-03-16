@@ -76,6 +76,16 @@ export async function getAddons(): Promise<AddonsConfig> {
       });
     }
 
+    const hasAny = Object.values(byCategory).some((items) => items.length > 0);
+    if (!hasAny) return addonsConfigFallback;
+
+    // Keep front-end assumptions stable: always have all categories.
+    (["hotel", "vehicle", "photography", "guide"] as const).forEach((cat) => {
+      if (!byCategory[cat] || byCategory[cat].length === 0) {
+        byCategory[cat] = addonsConfigFallback[cat];
+      }
+    });
+
     return byCategory;
   } catch {
     return addonsConfigFallback;

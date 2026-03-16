@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/contexts/LocaleContext";
@@ -10,10 +11,25 @@ const navKeys = ["home", "routes", "journal", "about", "contact"] as const;
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const { locale, setLocale, t } = useLocale();
+  const switchLocale = (next: "zh" | "en") => {
+    if (next === locale) return;
+    setLocale(next);
+    startTransition(() => {
+      router.refresh();
+    });
+  };
 
   const navItems = navKeys.map((key) => ({
-    href: key === "home" ? "/" : `/#${key === "routes" ? "routes" : key === "journal" ? "journal" : key === "about" ? "about" : "contact"}`,
+    href:
+      key === "home"
+        ? "/"
+        : key === "routes"
+          ? "/routes"
+        : key === "journal"
+          ? "/journal"
+          : `/#${key === "about" ? "about" : "contact"}`,
     label: t.nav[key],
   }));
 
@@ -51,7 +67,7 @@ export function Navbar() {
           <div className="flex items-center gap-1 border-l border-rock/20 pl-6">
             <button
               type="button"
-              onClick={() => setLocale("zh")}
+              onClick={() => switchLocale("zh")}
               className={cn(
                 "text-sm px-2 py-1 rounded transition-colors",
                 locale === "zh" ? "text-plateau font-medium" : "text-rock/70 hover:text-ink"
@@ -63,7 +79,7 @@ export function Navbar() {
             <span className="text-rock/40">|</span>
             <button
               type="button"
-              onClick={() => setLocale("en")}
+              onClick={() => switchLocale("en")}
               className={cn(
                 "text-sm px-2 py-1 rounded transition-colors",
                 locale === "en" ? "text-plateau font-medium" : "text-rock/70 hover:text-ink"
@@ -79,7 +95,7 @@ export function Navbar() {
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setLocale("zh")}
+              onClick={() => switchLocale("zh")}
               className={cn(
                 "text-xs px-2 py-1 rounded",
                 locale === "zh" ? "text-plateau font-medium" : "text-rock/70"
@@ -90,7 +106,7 @@ export function Navbar() {
             <span className="text-rock/40">|</span>
             <button
               type="button"
-              onClick={() => setLocale("en")}
+              onClick={() => switchLocale("en")}
               className={cn(
                 "text-xs px-2 py-1 rounded",
                 locale === "en" ? "text-plateau font-medium" : "text-rock/70"

@@ -11,6 +11,8 @@ import { Users } from "./src/collections/Users";
 import { Media } from "./src/collections/Media";
 import { Routes } from "./src/collections/Routes";
 import { Addons } from "./src/collections/Addons";
+import { Journals } from "./src/collections/Journals";
+import { SiteSettings } from "./src/globals/SiteSettings";
 
 export default buildConfig({
   admin: {
@@ -19,7 +21,8 @@ export default buildConfig({
       titleSuffix: " · 山居 Shanju",
     },
   },
-  collections: [Users, Media, Routes, Addons],
+  collections: [Users, Media, Routes, Addons, Journals],
+  globals: [SiteSettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || "changeme-in-production",
   typescript: {

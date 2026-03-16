@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useLocale } from "@/contexts/LocaleContext";
+import type { SiteAbout } from "@/lib/site-settings";
 
-export function SectionAbout() {
-  const { t } = useLocale();
+type SectionAboutProps = { siteAbout: SiteAbout };
 
+export function SectionAbout({ siteAbout }: SectionAboutProps) {
   return (
     <section id="about" className="py-20 md:py-28 bg-[#F5F2ED]">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
@@ -16,7 +16,7 @@ export function SectionAbout() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          {t.about.title}
+          {siteAbout.title}
         </motion.h2>
         <motion.p
           className="text-ink/85 leading-relaxed"
@@ -25,7 +25,7 @@ export function SectionAbout() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          {t.about.body}
+          {siteAbout.body}
         </motion.p>
       </div>
     </section>

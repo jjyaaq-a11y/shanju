@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useLocale } from "@/contexts/LocaleContext";
+import type { SiteWhy } from "@/lib/site-settings";
 
 const container = {
   hidden: { opacity: 0 },
@@ -22,18 +22,16 @@ const icons = [
   <path key="3" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
   <path key="4" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />,
 ];
-// 支付无忧 icon: wallet/card
 const paymentIcon = (
   <path key="payment" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
 );
-// 专业翻译 icon: chat/language
 const translationIcon = (
   <path key="translation" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
 );
 
-export function SectionWhy() {
-  const { t } = useLocale();
+type SectionWhyProps = { siteWhy: SiteWhy };
 
+export function SectionWhy({ siteWhy }: SectionWhyProps) {
   return (
     <section className="py-20 md:py-28 bg-[#F5F2ED]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -45,10 +43,10 @@ export function SectionWhy() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="font-serif text-3xl md:text-4xl font-semibold text-ink mb-3">
-            {t.why.sectionTitle}
+            {siteWhy.sectionTitle}
           </h2>
           <p className="text-ink/80 max-w-xl mx-auto">
-            {t.why.sectionDesc}
+            {siteWhy.sectionDesc}
           </p>
         </motion.div>
 
@@ -58,9 +56,9 @@ export function SectionWhy() {
           initial="show"
           viewport={{ once: true, margin: "-60px" }}
         >
-          {(t.why.items ?? []).map((r, i) => (
+          {siteWhy.items.map((r, i) => (
             <motion.div
-              key={r.title}
+              key={i}
               variants={item}
               className="text-center group"
             >
@@ -77,7 +75,6 @@ export function SectionWhy() {
           ))}
         </motion.div>
 
-        {/* 支付无忧、专业翻译：单独两行突出 */}
         <div className="mt-14 grid grid-cols-1 md:grid-cols-2 gap-10 max-w-4xl mx-auto">
           <motion.div className="text-center" initial={{ opacity: 1, y: 0 }}>
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-plateau/10 text-plateau mb-5">
@@ -86,10 +83,10 @@ export function SectionWhy() {
               </svg>
             </div>
             <h3 className="font-serif text-xl font-semibold text-ink mb-2">
-              {t.why.payment.title}
+              {siteWhy.paymentTitle}
             </h3>
             <p className="text-ink/75 text-sm leading-relaxed">
-              {t.why.payment.desc}
+              {siteWhy.paymentDesc}
             </p>
           </motion.div>
           <motion.div className="text-center" initial={{ opacity: 1, y: 0 }}>
@@ -99,10 +96,10 @@ export function SectionWhy() {
               </svg>
             </div>
             <h3 className="font-serif text-xl font-semibold text-ink mb-2">
-              {t.why.translation.title}
+              {siteWhy.translationTitle}
             </h3>
             <p className="text-ink/75 text-sm leading-relaxed">
-              {t.why.translation.desc}
+              {siteWhy.translationDesc}
             </p>
           </motion.div>
         </div>

@@ -4,6 +4,7 @@ import "../globals.css";
 import { LenisProvider } from "@/components/providers/LenisProvider";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
+import { getLocaleFromRequest } from "@/lib/locale-server";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -33,15 +34,19 @@ export const metadata: Metadata = {
     "Authentic journeys to Sichuan's hidden highlands. Tibetan culture, plateau landscapes, Chengdu-area premium inbound tours. Hidden gems, authentic immersion.",
 };
 
-export default function MainLayout({
+export default async function MainLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocaleFromRequest();
   return (
-    <html lang="en" className={`${playfair.variable} ${inter.variable} ${notoSansSC.variable}`}>
+    <html
+      lang={locale === "zh" ? "zh-CN" : "en"}
+      className={`${playfair.variable} ${inter.variable} ${notoSansSC.variable}`}
+    >
       <body className="min-h-screen font-sans">
-        <LocaleProvider>
+        <LocaleProvider initialLocale={locale}>
           <LenisProvider>{children}</LenisProvider>
           <CookieConsentBanner />
         </LocaleProvider>

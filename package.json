@@ -11,7 +11,9 @@
     "payload:generate:importmap": "PAYLOAD_CONFIG_PATH=./payload.config.importmap.ts payload generate:importmap",
     "payload:generate:types": "PAYLOAD_CONFIG_PATH=./payload.config.importmap.ts payload generate:types",
     "migrate:routes": "bash scripts/migrate-routes-schema.sh",
-    "seed:routes": "sqlite3 payload.db < scripts/seed-routes.sql"
+    "seed:routes": "sqlite3 payload.db < scripts/seed-routes.sql",
+    "seed:site": "tsx scripts/seed-site.ts",
+    "verify:home": "bash scripts/verify-homepage.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -31,6 +33,7 @@
     "lenis": "^1.1.13",
     "lucide-react": "^0.460.0",
     "next": "^15.0.0",
+    "nodemailer": "^6.10.1",
     "payload": "^3.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -41,6 +44,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/nodemailer": "^7.0.11",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.0.0",
@@ -48,6 +52,7 @@
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
+    "tsx": "^4.21.0",
     "typescript": "^5.0.0"
   }
 }

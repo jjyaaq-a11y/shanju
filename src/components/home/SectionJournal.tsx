@@ -1,14 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { ImageDebug } from "@/components/ui/ImageDebug";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/contexts/LocaleContext";
-import { journalImages } from "@/lib/images";
+import type { Journal } from "@/lib/journals";
+import type { SiteJournalSection } from "@/lib/site-settings";
 
 const container = {
   hidden: { opacity: 0 },
@@ -23,9 +23,10 @@ const cardItem = {
   show: { opacity: 1, y: 0 },
 };
 
-export function SectionJournal() {
+type SectionJournalProps = { journals: Journal[]; siteJournal: SiteJournalSection };
+
+export function SectionJournal({ journals, siteJournal }: SectionJournalProps) {
   const { t } = useLocale();
-  const posts = t.journal.posts.map((p, i) => ({ ...p, image: journalImages[i] }));
 
   return (
     <section id="journal" className="py-20 md:py-28 bg-cream">
@@ -39,14 +40,14 @@ export function SectionJournal() {
         >
           <div>
             <h2 className="font-serif text-3xl md:text-4xl font-semibold text-ink mb-3">
-              {t.journal.sectionTitle}
+              {siteJournal.sectionTitle}
             </h2>
             <p className="text-ink/80 max-w-xl">
-              {t.journal.sectionDesc}
+              {siteJournal.sectionDesc}
             </p>
           </div>
           <Button variant="outline" size="sm" asChild>
-            <Link href="#">{t.journal.more}</Link>
+            <Link href="/journal">{t.journal.more}</Link>
           </Button>
         </motion.div>
 
@@ -57,27 +58,30 @@ export function SectionJournal() {
           whileInView="show"
           viewport={{ once: true, margin: "-60px" }}
         >
-          {posts.map((post, idx) => (
-            <motion.div key={idx} variants={cardItem}>
+          {journals.map((post) => (
+            <motion.div key={post.id} variants={cardItem}>
               <Card className="overflow-hidden border-rock/15 h-full flex flex-col hover:shadow-lg transition-shadow">
                 <div className="relative aspect-[16/10] overflow-hidden">
-                  <Image
-                    src={post.image}
-                    alt={post.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    unoptimized
-                  />
-                  <ImageDebug label={`journal:${idx}`} src={post.image} />
-                  <div className="absolute top-3 left-3">
-                    <Badge variant="secondary" className="text-xs">
-                      {post.tag}
-                    </Badge>
-                  </div>
+                  {post.image && (
+                    <Image
+                      src={post.image}
+                      alt={post.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      unoptimized
+                    />
+                  )}
+                  {post.tag && (
+                    <div className="absolute top-3 left-3">
+                      <Badge variant="secondary" className="text-xs">
+                        {post.tag}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 <CardContent className="p-5 flex-1 flex flex-col">
-                  <span className="text-ink/65 text-xs mb-2">{post.date}</span>
+                  {post.date && <span className="text-ink/65 text-xs mb-2">{post.date}</span>}
                   <h3 className="font-serif text-lg font-semibold text-ink mb-2 line-clamp-2">
                     {post.title}
                   </h3>
@@ -87,7 +91,7 @@ export function SectionJournal() {
                 </CardContent>
                 <CardFooter className="pt-0">
                   <Button variant="ghost" size="sm" className="text-plateau -ml-2" asChild>
-                    <Link href="#">{t.journal.readMore}</Link>
+                    <Link href={`/journal/${post.slug}`}>{t.journal.readMore}</Link>
                   </Button>
                 </CardFooter>
               </Card>

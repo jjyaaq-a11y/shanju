@@ -36,8 +36,14 @@ type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
-export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("en");
+export function LocaleProvider({
+  children,
+  initialLocale,
+}: {
+  children: ReactNode;
+  initialLocale?: Locale;
+}) {
+  const [locale, setLocaleState] = useState<Locale>(initialLocale ?? "en");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -74,9 +80,11 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     setLocaleState(next);
     try {
       const consent = hasCookieConsent();
+      // Keep a session-level locale cookie so server-rendered data can switch immediately.
+      document.cookie = `shanju-locale=${next};path=/;SameSite=Lax`;
       if (consent) {
         localStorage.setItem(STORAGE_KEY, next);
-        document.cookie = `shanju-locale=${next};path=/;max-age=31536000`;
+        document.cookie = `shanju-locale=${next};path=/;max-age=31536000;SameSite=Lax`;
       } else {
         sessionStorage.setItem(STORAGE_KEY, next);
       }

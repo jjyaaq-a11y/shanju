@@ -31,6 +31,15 @@
     font-weight: 700;
     letter-spacing: -0.02em;
   }
+  html[lang="zh-CN"] h1,
+  html[lang="zh-CN"] h2,
+  html[lang="zh-CN"] h3,
+  html[lang="zh-CN"] h4,
+  html[lang="zh-CN"] h5,
+  html[lang="zh-CN"] h6 {
+    font-family: var(--font-sans-sc), "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    letter-spacing: 0;
+  }
   h1 { letter-spacing: -0.03em; }
   h2 { letter-spacing: -0.025em; }
   h3 { letter-spacing: -0.02em; }

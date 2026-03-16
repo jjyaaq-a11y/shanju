@@ -84,7 +84,6 @@ export const en: LocaleMessages = {
     scanQR: "Scan to add",
     qrPlaceholder: "QR code",
     copyright: "All rights reserved.",
-    icp: "蜀ICP备xxxxxxxx号",
   },
   form: {
     dailyItinerary: "Daily Itinerary",

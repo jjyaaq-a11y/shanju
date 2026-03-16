@@ -2,7 +2,7 @@ import type { Route as PayloadRoute, Media } from "payload-types";
 
 const PAYLOAD_API =
   process.env.NEXT_PUBLIC_PAYLOAD_URL || process.env.PAYLOAD_URL || "http://localhost:3000";
-const REVALIDATE = 3600;
+const REVALIDATE = process.env.NODE_ENV === "development" ? 0 : 3600;
 
 export type LocaleKey = "zh" | "en";
 
@@ -31,6 +31,19 @@ export type Route = {
   dayDescriptions: { zh: string; en: string }[];
   /** 每天多张图片：dayImages[dayIndex] = [url1, url2] */
   dayImages: string[][];
+  /** 行程包含的服务列表（我们提供） */
+  whatsIncluded: { zh: string[]; en: string[] };
+  /** 旅游注意事项 */
+  travelTips: { zh: string; en: string };
+};
+
+export type RouteListResult = {
+  docs: Route[];
+  page: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  totalDocs: number;
 };
 
 function formatDays(daysCount: number, locale: LocaleKey): string {
@@ -58,6 +71,7 @@ type DayItineraryItem = {
 };
 
 type PrRoute = PayloadRoute & {
+  nameEn?: string;
   overviewZh?: string;
   overviewEn?: string;
   heroImage?: number | Media | null;
@@ -67,10 +81,22 @@ type PrRoute = PayloadRoute & {
   price_5_people?: number;
   price_6_people?: number;
   dayItinerary?: DayItineraryItem[];
+  whatsIncluded?: Array<{ item?: string; id?: string }>;
+  travelTips?: string;
 };
 
+function englishNameFromSlug(slug?: string | null): string {
+  if (!slug) return "";
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function mapPayloadRouteToRoute(pr: PrRoute): Route {
-  const name = pr.name || "";
+  const nameZh = pr.name || "";
+  const nameEn = pr.nameEn?.trim() || englishNameFromSlug(pr.slug) || nameZh;
   const daysCount = pr.daysCount ?? 0;
   const dayItinerary = pr.dayItinerary ?? [];
 
@@ -101,9 +127,13 @@ function mapPayloadRouteToRoute(pr: PrRoute): Route {
   const daysSafe = Math.max(1, daysCount);
   const basePricePerPersonPerDay = (pr.price_2_people ?? 0) / daysSafe;
 
+  const includedItems = (pr.whatsIncluded ?? [])
+    .map((w) => w.item ?? "")
+    .filter(Boolean);
+
   return {
     id: pr.slug || String(pr.id),
-    name: { zh: name, en: name },
+    name: { zh: nameZh, en: nameEn },
     days: { zh: formatDays(daysCount, "zh"), en: formatDays(daysCount, "en") },
     daysCount,
     overview: {
@@ -115,6 +145,8 @@ function mapPayloadRouteToRoute(pr: PrRoute): Route {
     image: imageUrl,
     dayDescriptions,
     dayImages: dayImagesList,
+    whatsIncluded: { zh: includedItems, en: includedItems },
+    travelTips: { zh: pr.travelTips ?? "", en: pr.travelTips ?? "" },
   };
 }
 
@@ -129,11 +161,16 @@ function mergeDayDescriptions(
   }));
 }
 
-export async function getRoutes(locale: LocaleKey = "zh"): Promise<Route[]> {
+export async function getRoutesPage(
+  locale: LocaleKey = "zh",
+  limit = 10,
+  page = 1
+): Promise<RouteListResult> {
   try {
     const url = new URL(`${PAYLOAD_API}/api/routes`);
     url.searchParams.set("depth", "3");
-    url.searchParams.set("limit", "100");
+    url.searchParams.set("limit", String(limit));
+    url.searchParams.set("page", String(page));
     url.searchParams.set("locale", locale);
     url.searchParams.set("fallbackLocale", "zh");
 
@@ -141,14 +178,40 @@ export async function getRoutes(locale: LocaleKey = "zh"): Promise<Route[]> {
       next: { revalidate: REVALIDATE },
       headers: { "Content-Type": "application/json" },
     });
-    if (!res.ok) throw new Error(`API ${res.status}`);
+    if (!res.ok) {
+      return {
+        docs: [],
+        page,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+        totalDocs: 0,
+      };
+    }
     const data = await res.json();
-    const docs = data?.docs ?? [];
-
-    return docs.map((pr: PrRoute) => mapPayloadRouteToRoute(pr));
+    return {
+      docs: (data?.docs ?? []).map((pr: PrRoute) => mapPayloadRouteToRoute(pr)),
+      page: Number(data?.page ?? page),
+      totalPages: Number(data?.totalPages ?? 1),
+      hasNextPage: Boolean(data?.hasNextPage),
+      hasPrevPage: Boolean(data?.hasPrevPage),
+      totalDocs: Number(data?.totalDocs ?? 0),
+    };
   } catch {
-    return [];
+    return {
+      docs: [],
+      page,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPrevPage: false,
+      totalDocs: 0,
+    };
   }
+}
+
+export async function getRoutes(locale: LocaleKey = "zh"): Promise<Route[]> {
+  const result = await getRoutesPage(locale, 100, 1);
+  return result.docs;
 }
 
 export async function getRouteBySlug(
@@ -170,7 +233,7 @@ export async function getRouteBySlug(
     if (!resZh.ok) throw new Error(`API ${resZh.status}`);
     const dataZh = await resZh.json();
     const dataEn = await resEn.json();
-    const pr = dataZh?.docs?.[0];
+    const pr = dataZh?.docs?.[0] as PrRoute | undefined;
     if (!pr) return null;
 
     const dayItinerary = (pr.dayItinerary ?? []) as DayItineraryItem[];
@@ -205,9 +268,21 @@ export async function getRouteBySlug(
     const daysSafe = Math.max(1, pr.daysCount ?? 0);
     const basePricePerPersonPerDay = (pr.price_2_people ?? 0) / daysSafe;
 
+    // 分别提取中英文 whatsIncluded
+    const prZh = pr as PrRoute;
+    const prEnDoc = docEn as PrRoute | undefined;
+    const nameZh = prZh.name ?? "";
+    const nameEn =
+      prEnDoc?.nameEn?.trim() ||
+      prZh.nameEn?.trim() ||
+      englishNameFromSlug(prZh.slug) ||
+      nameZh;
+    const whatsIncludedZh = (prZh.whatsIncluded ?? []).map((w) => w.item ?? "").filter(Boolean);
+    const whatsIncludedEn = (prEnDoc?.whatsIncluded ?? []).map((w) => w.item ?? "").filter(Boolean);
+
     return {
       id: pr.slug || String(pr.id),
-      name: { zh: pr.name ?? "", en: pr.name ?? "" },
+      name: { zh: nameZh, en: nameEn },
       days: {
         zh: formatDays(pr.daysCount ?? 0, "zh"),
         en: formatDays(pr.daysCount ?? 0, "en"),
@@ -228,6 +303,14 @@ export async function getRouteBySlug(
       image: imageUrl,
       dayDescriptions: merged,
       dayImages: dayImagesList,
+      whatsIncluded: {
+        zh: whatsIncludedZh.length > 0 ? whatsIncludedZh : whatsIncludedEn,
+        en: whatsIncludedEn.length > 0 ? whatsIncludedEn : whatsIncludedZh,
+      },
+      travelTips: {
+        zh: prZh.travelTips ?? "",
+        en: prEnDoc?.travelTips ?? prZh.travelTips ?? "",
+      },
     };
   } catch {
     return null;

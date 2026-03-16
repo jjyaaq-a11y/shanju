@@ -20,7 +20,8 @@ export const Routes: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data, operation }) => {
-        if (data?.name && (!data?.slug || operation === "create")) {
+        // 只在 slug 为空时自动生成，手动填写的值不覆盖
+        if (data?.name && !data?.slug) {
           data.slug = slugify(data.name);
         }
         const days = data?.daysCount;
@@ -45,12 +46,22 @@ export const Routes: CollectionConfig = {
       label: "名称",
     },
     {
+      name: "nameEn",
+      type: "text",
+      label: "英文名称",
+      admin: {
+        description: "首页与英文界面显示的路线英文名；留空时前台会用 slug 自动生成。",
+      },
+    },
+    {
       name: "slug",
       type: "text",
       required: true,
       unique: true,
       label: "URL Slug",
-      admin: { description: "从名称自动生成", readOnly: true },
+      admin: {
+        description: "路线页面的 URL 路径，如 daocheng-yading。留空则从名称自动生成；中文名称建议手动填写英文拼音，便于分享。",
+      },
     },
     {
       name: "daysCount",
@@ -84,6 +95,35 @@ export const Routes: CollectionConfig = {
     { name: "price_4_people", type: "number", required: true, label: "4 人 每人（美金）", min: 0 },
     { name: "price_5_people", type: "number", required: true, label: "5 人 每人（美金）", min: 0 },
     { name: "price_6_people", type: "number", required: true, label: "6 人 每人（美金）", min: 0 },
+    // ─── 行程包含（我们提供） ─────────────────────────────────────
+    {
+      name: "whatsIncluded",
+      type: "array",
+      label: "行程包含（我们提供）",
+      admin: {
+        description: "列出此路线包含的服务，如：餐饮、专车、导游、酒店、代付等。中英文均可填写。",
+      },
+      fields: [
+        {
+          name: "item",
+          type: "text",
+          label: "包含项目",
+          localized: true,
+        },
+      ],
+    },
+
+    // ─── 旅游注意事项 ─────────────────────────────────────────────
+    {
+      name: "travelTips",
+      type: "textarea",
+      label: "旅游注意事项",
+      localized: true,
+      admin: {
+        description: "高原反应、季节温度、衣物建议等注意事项。支持中英文分别填写。",
+      },
+    },
+
     {
       name: "dayItinerary",
       type: "array",

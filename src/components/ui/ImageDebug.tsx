@@ -10,6 +10,8 @@ export function ImageDebug({
   src: string | null | undefined;
   className?: string;
 }) {
+  if (process.env.NODE_ENV === "production") return null;
+
   const url = src?.trim() || "";
   const display = url ? (url.length > 60 ? url.slice(0, 57) + "…" : url) : "(empty)";
   return (

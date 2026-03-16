@@ -9,6 +9,7 @@
 
 # next.js
 /.next/
+/.next_broken_*/
 out/
 
 # production

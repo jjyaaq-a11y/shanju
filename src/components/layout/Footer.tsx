@@ -1,16 +1,27 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useLocale } from "@/contexts/LocaleContext";
+import type { SiteFooter } from "@/lib/site-settings";
 
 const linkKeys = ["home", "routes", "journal", "about", "contact"] as const;
 
-export function Footer() {
+type FooterProps = { siteFooter: SiteFooter };
+
+export function Footer({ siteFooter }: FooterProps) {
   const { t } = useLocale();
 
   const links = linkKeys.map((key) => ({
-    href: key === "home" ? "/" : `/#${key === "routes" ? "routes" : key === "journal" ? "journal" : key === "about" ? "about" : "contact"}`,
+    href:
+      key === "home"
+        ? "/"
+        : key === "routes"
+          ? "/routes"
+        : key === "journal"
+          ? "/journal"
+          : `/#${key === "about" ? "about" : "contact"}`,
     label: t.nav[key],
   }));
 
@@ -28,7 +39,7 @@ export function Footer() {
               DeepChinaTrip
             </h3>
             <p className="text-cream/80 text-sm leading-relaxed mb-6 max-w-md">
-              {t.footer.desc}
+              {siteFooter.desc}
             </p>
             <ul className="flex flex-wrap gap-6">
               {links.map((link) => (
@@ -53,73 +64,98 @@ export function Footer() {
             <p className="text-cream/70 text-sm mb-3">{t.footer.contact}</p>
             <p className="text-cream/60 text-xs mb-4">{t.footer.contactChannels}</p>
             <ul className="space-y-2 text-sm">
-              <li>
-                <a
-                  href={`mailto:${t.footer.email}`}
-                  className="text-cream/90 hover:text-wheat transition-colors"
-                >
-                  {t.footer.emailLabel}: {t.footer.email}
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://instagram.com/deepchinatrip"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-cream/90 hover:text-wheat transition-colors"
-                >
-                  {t.footer.instagramLabel}: {t.footer.instagram}
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://facebook.com/deepchinatrip"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-cream/90 hover:text-wheat transition-colors"
-                >
-                  {t.footer.facebookLabel}: {t.footer.facebook}
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://wa.me/8613800000000"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-cream/90 hover:text-wheat transition-colors"
-                >
-                  {t.footer.whatsappLabel}: {t.footer.whatsapp}
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://t.me/deepchinatrip"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-cream/90 hover:text-wheat transition-colors"
-                >
-                  {t.footer.telegramLabel}: {t.footer.telegram}
-                </a>
-              </li>
-              <li>
-                <span className="text-cream/90">
-                  {t.footer.wechatLabel}: {t.footer.wechat}
-                </span>
-                <span className="text-cream/60 text-xs ml-2">({t.footer.scanQR})</span>
-              </li>
+              {siteFooter.email && (
+                <li>
+                  <a
+                    href={`mailto:${siteFooter.email}`}
+                    className="text-cream/90 hover:text-wheat transition-colors"
+                  >
+                    {t.footer.emailLabel}: {siteFooter.email}
+                  </a>
+                </li>
+              )}
+              {siteFooter.instagram && (
+                <li>
+                  <a
+                    href={`https://instagram.com/${siteFooter.instagram.replace("@", "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cream/90 hover:text-wheat transition-colors"
+                  >
+                    {t.footer.instagramLabel}: {siteFooter.instagram}
+                  </a>
+                </li>
+              )}
+              {siteFooter.facebook && (
+                <li>
+                  <a
+                    href={`https://facebook.com/${siteFooter.facebook}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cream/90 hover:text-wheat transition-colors"
+                  >
+                    {t.footer.facebookLabel}: {siteFooter.facebook}
+                  </a>
+                </li>
+              )}
+              {siteFooter.whatsapp && (
+                <li>
+                  <a
+                    href={`https://wa.me/${siteFooter.whatsapp.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cream/90 hover:text-wheat transition-colors"
+                  >
+                    {t.footer.whatsappLabel}: {siteFooter.whatsapp}
+                  </a>
+                </li>
+              )}
+              {siteFooter.telegram && (
+                <li>
+                  <a
+                    href={`https://t.me/${siteFooter.telegram.replace("@", "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cream/90 hover:text-wheat transition-colors"
+                  >
+                    {t.footer.telegramLabel}: {siteFooter.telegram}
+                  </a>
+                </li>
+              )}
+              {siteFooter.wechat && (
+                <li>
+                  <span className="text-cream/90">
+                    {t.footer.wechatLabel}: {siteFooter.wechat}
+                  </span>
+                  <span className="text-cream/60 text-xs ml-2">({t.footer.scanQR})</span>
+                </li>
+              )}
             </ul>
-            <div
-              className="mt-4 w-28 h-28 rounded-lg bg-rock/50 flex items-center justify-center text-cream/50 text-xs"
-              aria-label={t.footer.qrPlaceholder}
-            >
-              {t.footer.qrPlaceholder}
-            </div>
+
+            {siteFooter.qrImage ? (
+              <div className="mt-4 w-28 h-28 rounded-lg overflow-hidden relative">
+                <Image
+                  src={siteFooter.qrImage}
+                  alt={t.footer.qrPlaceholder}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <div
+                className="mt-4 w-28 h-28 rounded-lg bg-rock/50 flex items-center justify-center text-cream/50 text-xs"
+                aria-label={t.footer.qrPlaceholder}
+              >
+                {t.footer.qrPlaceholder}
+              </div>
+            )}
           </motion.div>
         </div>
 
         <div className="mt-12 pt-8 border-t border-cream/20">
           <p className="text-cream/60 text-xs">
-            © {new Date().getFullYear()} DeepChinaTrip. {t.footer.copyright}
+            © {new Date().getFullYear()} DeepChinaTrip. {siteFooter.copyright}
           </p>
         </div>
       </div>

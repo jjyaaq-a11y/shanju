@@ -98,7 +98,6 @@ export const zh = {
     scanQR: "扫码添加客服",
     qrPlaceholder: "二维码占位",
     copyright: "保留所有权利.",
-    icp: "蜀ICP备xxxxxxxx号",
   },
   form: {
     dailyItinerary: "每日行程",
