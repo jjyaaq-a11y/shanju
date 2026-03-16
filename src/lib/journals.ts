@@ -2,7 +2,6 @@ import type { Media } from "payload-types";
 
 const PAYLOAD_API =
   process.env.NEXT_PUBLIC_PAYLOAD_URL || process.env.PAYLOAD_URL || "http://localhost:3000";
-const REVALIDATE = process.env.NODE_ENV === "development" ? 0 : 3600;
 
 function getMediaUrl(media: unknown): string {
   if (!media || typeof media !== "object") return "";
@@ -70,7 +69,7 @@ export async function getJournals(
     url.searchParams.set("where[published][equals]", "true");
     url.searchParams.set("sort", "sortOrder");
 
-    const res = await fetch(url.toString(), { next: { revalidate: REVALIDATE } });
+    const res = await fetch(url.toString(), { cache: "no-store" });
     if (!res.ok) {
       return {
         docs: [],
@@ -117,7 +116,7 @@ export async function getJournalBySlug(
 
     const slugUrl = new URL(baseUrl);
     slugUrl.searchParams.set("where[slug][equals]", slug);
-    const resBySlug = await fetch(slugUrl.toString(), { next: { revalidate: REVALIDATE } });
+    const resBySlug = await fetch(slugUrl.toString(), { cache: "no-store" });
     if (resBySlug.ok) {
       const dataBySlug = await resBySlug.json();
       const docBySlug = dataBySlug?.docs?.[0];
@@ -129,7 +128,7 @@ export async function getJournalBySlug(
     // Backward compatibility for old records created before slug field existed.
     const idUrl = new URL(baseUrl);
     idUrl.searchParams.set("where[id][equals]", slug);
-    const resById = await fetch(idUrl.toString(), { next: { revalidate: REVALIDATE } });
+    const resById = await fetch(idUrl.toString(), { cache: "no-store" });
     if (!resById.ok) return null;
     const dataById = await resById.json();
     const docById = dataById?.docs?.[0];

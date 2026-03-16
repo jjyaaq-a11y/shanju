@@ -2,7 +2,6 @@ import type { Route as PayloadRoute, Media } from "payload-types";
 
 const PAYLOAD_API =
   process.env.NEXT_PUBLIC_PAYLOAD_URL || process.env.PAYLOAD_URL || "http://localhost:3000";
-const REVALIDATE = process.env.NODE_ENV === "development" ? 0 : 3600;
 
 export type LocaleKey = "zh" | "en";
 
@@ -175,7 +174,7 @@ export async function getRoutesPage(
     url.searchParams.set("fallbackLocale", "zh");
 
     const res = await fetch(url.toString(), {
-      next: { revalidate: REVALIDATE },
+      cache: "no-store",
       headers: { "Content-Type": "application/json" },
     });
     if (!res.ok) {
@@ -222,11 +221,11 @@ export async function getRouteBySlug(
     const [resZh, resEn] = await Promise.all([
       fetch(
         `${PAYLOAD_API}/api/routes?where[slug][equals]=${encodeURIComponent(slug)}&depth=3&limit=1&locale=zh&fallbackLocale=zh`,
-        { next: { revalidate: REVALIDATE }, headers: { "Content-Type": "application/json" } }
+        { cache: "no-store", headers: { "Content-Type": "application/json" } }
       ),
       fetch(
         `${PAYLOAD_API}/api/routes?where[slug][equals]=${encodeURIComponent(slug)}&depth=3&limit=1&locale=en&fallbackLocale=zh`,
-        { next: { revalidate: REVALIDATE }, headers: { "Content-Type": "application/json" } }
+        { cache: "no-store", headers: { "Content-Type": "application/json" } }
       ),
     ]);
 

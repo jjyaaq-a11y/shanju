@@ -4,7 +4,6 @@ import { en } from "@/locales/en";
 
 const PAYLOAD_API =
   process.env.NEXT_PUBLIC_PAYLOAD_URL || process.env.PAYLOAD_URL || "http://localhost:3000";
-const REVALIDATE = process.env.NODE_ENV === "development" ? 0 : 3600;
 
 function getMediaUrl(media: unknown): string {
   if (!media || typeof media !== "object") return "";
@@ -121,7 +120,7 @@ export async function getSiteSettings(locale: "zh" | "en" = "zh"): Promise<SiteS
   const defaults = getDefaults(locale);
   try {
     const url = `${PAYLOAD_API}/api/globals/site-settings?locale=${locale}&fallbackLocale=zh&depth=2`;
-    const res = await fetch(url, { next: { revalidate: REVALIDATE } });
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return defaults;
     const data = await res.json();
 
