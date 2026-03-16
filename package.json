@@ -13,7 +13,8 @@
     "migrate:routes": "bash scripts/migrate-routes-schema.sh",
     "seed:routes": "sqlite3 payload.db < scripts/seed-routes.sql",
     "seed:site": "tsx scripts/seed-site.ts",
-    "verify:home": "bash scripts/verify-homepage.sh"
+    "verify:home": "bash scripts/verify-homepage.sh",
+    "deploy:server": "bash scripts/deploy-server.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

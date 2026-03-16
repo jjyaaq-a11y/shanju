@@ -81,6 +81,28 @@ sudo systemctl restart shanju
 
 无需打包、无需拷贝，四步完成。
 
+### 一键更新脚本（推荐）
+
+项目已提供脚本：[`scripts/deploy-server.sh`](scripts/deploy-server.sh)，支持以下流程：
+- 拉取最新代码（`git pull --ff-only`）
+- 自动备份 `payload.db`（默认到 `./backups/`）
+- 可选执行数据库迁移与初始化
+- 自动重启 `shanju.service`
+
+示例：
+
+```bash
+# 仅更新代码 + 构建 + 备份 + 重启
+cd /var/www/shanju
+npm run deploy:server
+
+# 首次部署/需要初始化数据库时
+npm run deploy:server -- --init-db
+
+# 强制重灌 seed（会重复写入内容，谨慎）
+npm run deploy:server -- --init-db --force-seed
+```
+
 **环境变量（可选）**：在 `[Service]` 里加 `Environment=PAYLOAD_SECRET=xxx`，或 `EnvironmentFile=/var/www/shanju/.env`。
 
 ---
