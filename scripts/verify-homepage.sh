@@ -30,6 +30,10 @@ JOURNALS_CODE="$(curl --noproxy '*' -sS -o "$JOURNALS_JSON" -w '%{http_code}' "$
 
 HERO_URL="$(node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const u=j?.hero?.heroImage?.url||'';process.stdout.write(u);" "$SITE_SETTINGS_JSON")"
 [[ -n "$HERO_URL" ]] || fail "site-settings.hero.heroImage.url is empty"
+HERO_URL_ALT=""
+if [[ "$HERO_URL" == /* ]]; then
+  HERO_URL_ALT="${BASE_URL%/}${HERO_URL}"
+fi
 
 grep -q 'DeepChinaTrip' "$HOME_HTML" || fail "Homepage missing brand title text"
 grep -q '/routes' "$HOME_HTML" || fail "Homepage missing /routes link"
@@ -37,7 +41,13 @@ grep -q '/journal' "$HOME_HTML" || fail "Homepage missing /journal link"
 grep -q 'id="routes"' "$HOME_HTML" || fail "Homepage missing routes section"
 grep -q 'id="journal"' "$HOME_HTML" || fail "Homepage missing journal section"
 grep -q '为什么选择我们' "$HOME_HTML" || fail "Homepage missing Why section title (zh)"
-grep -q "$HERO_URL" "$HOME_HTML" || fail "Homepage missing hero image URL from CMS ($HERO_URL)"
+if ! grep -q "$HERO_URL" "$HOME_HTML"; then
+  if [[ -n "$HERO_URL_ALT" ]] && grep -q "$HERO_URL_ALT" "$HOME_HTML"; then
+    true
+  else
+    fail "Homepage missing hero image URL from CMS ($HERO_URL)"
+  fi
+fi
 grep -q '/routes/' "$HOME_HTML" || fail "Homepage missing route detail links"
 grep -q '/journal/' "$HOME_HTML" || fail "Homepage missing journal detail links"
 

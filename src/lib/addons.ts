@@ -1,7 +1,7 @@
 import type { Addon as PayloadAddon } from "payload-types";
 
 const PAYLOAD_API =
-  process.env.NEXT_PUBLIC_PAYLOAD_URL || process.env.PAYLOAD_URL || "http://localhost:3000";
+  process.env.PAYLOAD_URL || process.env.NEXT_PUBLIC_PAYLOAD_URL || "http://localhost:3000";
 const REVALIDATE = 3600;
 
 export type AddonItem = {
