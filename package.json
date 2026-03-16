@@ -14,7 +14,8 @@
     "seed:routes": "sqlite3 payload.db < scripts/seed-routes.sql",
     "seed:site": "tsx scripts/seed-site.ts",
     "verify:home": "bash scripts/verify-homepage.sh",
-    "deploy:server": "bash scripts/deploy-server.sh"
+    "deploy:server": "bash scripts/deploy-server.sh",
+    "deploy:update-verify": "bash scripts/update-and-verify.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
