@@ -108,12 +108,16 @@ else
   log "No .next/standalone directory found, skipped standalone sync."
 fi
 
-if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files | grep -q "^${SERVICE_NAME}\.service"; then
-  log "Restarting service ${SERVICE_NAME}..."
-  sudo systemctl restart "${SERVICE_NAME}"
-  sudo systemctl status "${SERVICE_NAME}" --no-pager -l | sed -n '1,30p'
+if command -v systemctl >/dev/null 2>&1; then
+  if systemctl status "${SERVICE_NAME}" >/dev/null 2>&1 || systemctl status "${SERVICE_NAME}.service" >/dev/null 2>&1; then
+    log "Restarting service ${SERVICE_NAME}..."
+    sudo systemctl restart "${SERVICE_NAME}"
+    sudo systemctl status "${SERVICE_NAME}" --no-pager -l | sed -n '1,30p'
+  else
+    log "Service ${SERVICE_NAME}.service not found, skip restart."
+  fi
 else
-  log "Service ${SERVICE_NAME}.service not found, skip restart."
+  log "systemctl not available, skip restart."
 fi
 
 log "Running homepage verification..."
