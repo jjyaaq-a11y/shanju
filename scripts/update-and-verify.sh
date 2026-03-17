@@ -109,7 +109,7 @@ else
 fi
 
 if command -v systemctl >/dev/null 2>&1; then
-  if systemctl status "${SERVICE_NAME}" >/dev/null 2>&1 || systemctl status "${SERVICE_NAME}.service" >/dev/null 2>&1; then
+  if sudo systemctl status "${SERVICE_NAME}" >/dev/null 2>&1 || sudo systemctl status "${SERVICE_NAME}.service" >/dev/null 2>&1; then
     log "Restarting service ${SERVICE_NAME}..."
     sudo systemctl restart "${SERVICE_NAME}"
     sudo systemctl status "${SERVICE_NAME}" --no-pager -l | sed -n '1,30p'

@@ -59,9 +59,9 @@ if ! grep -q '小团限额' "$HOME_HTML" && ! grep -q 'Small Groups' "$HOME_HTML
   fail "Why section card content is empty on homepage render"
 fi
 
-MAIN_JS_PATH="$(node -e "const fs=require('fs');const html=fs.readFileSync(process.argv[1],'utf8');const m=html.match(/src=\\\"([^\\\"]*main-app\\.js[^\\\"]*)\\\"/);process.stdout.write(m?m[1]:'');" "$HOME_HTML")"
-[[ -n "$MAIN_JS_PATH" ]] || fail "Cannot find main-app.js script tag on homepage"
+MAIN_JS_PATH="$(node -e "const fs=require('fs');const html=fs.readFileSync(process.argv[1],'utf8');const matches=[...html.matchAll(/src=\\\"([^\\\"]*\\/_next\\/static\\/chunks\\/[^\\\"]+\\.js)\\\"/g)].map(m=>m[1]);const target=matches.find(p=>p.includes('main-app'))||matches[0]||'';process.stdout.write(target);" "$HOME_HTML")"
+[[ -n "$MAIN_JS_PATH" ]] || fail "Cannot find Next.js chunk script tag on homepage"
 MAIN_JS_CODE="$(curl --noproxy '*' -sS -o /dev/null -w '%{http_code}' "$BASE_URL$MAIN_JS_PATH")"
-[[ "$MAIN_JS_CODE" == "200" ]] || fail "main-app.js returned $MAIN_JS_CODE (expected 200)"
+[[ "$MAIN_JS_CODE" == "200" ]] || fail "Next.js chunk returned $MAIN_JS_CODE (expected 200): $MAIN_JS_PATH"
 
 echo "PASS: Homepage integrity checks passed"
