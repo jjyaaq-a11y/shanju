@@ -74,6 +74,7 @@ done
 
 require_cmd git
 require_cmd npm
+require_cmd curl
 require_cmd cp
 require_cmd rm
 
@@ -118,6 +119,23 @@ if command -v systemctl >/dev/null 2>&1; then
   fi
 else
   log "systemctl not available, skip restart."
+fi
+
+log "Waiting for ${BASE_URL} to become ready..."
+READY=0
+for _ in $(seq 1 30); do
+  if curl --noproxy '*' -sS -o /dev/null "${BASE_URL}/"; then
+    READY=1
+    break
+  fi
+  sleep 1
+done
+if [[ "$READY" -ne 1 ]]; then
+  log "Service did not become ready in time."
+  if command -v systemctl >/dev/null 2>&1; then
+    sudo systemctl status "${SERVICE_NAME}" --no-pager -l | sed -n '1,40p' || true
+  fi
+  exit 1
 fi
 
 log "Running homepage verification..."
