@@ -4,6 +4,8 @@ import { en } from "@/locales/en";
 
 const PAYLOAD_API =
   process.env.PAYLOAD_URL || process.env.NEXT_PUBLIC_PAYLOAD_URL || "http://localhost:3000";
+const PAYLOAD_PUBLIC =
+  process.env.NEXT_PUBLIC_PAYLOAD_URL || process.env.PAYLOAD_URL || "http://localhost:3000";
 
 function getMediaUrl(media: unknown): string {
   if (!media || typeof media !== "object") return "";
@@ -11,7 +13,8 @@ function getMediaUrl(media: unknown): string {
   const rawUrl = m.url;
   if (!rawUrl) return "";
   if (rawUrl.startsWith("http")) return rawUrl;
-  const base = PAYLOAD_API.replace(/\/$/, "");
+  if (rawUrl.startsWith("/")) return rawUrl;
+  const base = PAYLOAD_PUBLIC.replace(/\/$/, "");
   return `${base}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
 }
 
