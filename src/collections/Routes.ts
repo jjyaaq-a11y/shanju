@@ -101,28 +101,32 @@ export const Routes: CollectionConfig = {
       type: "array",
       label: "行程包含（我们提供）",
       admin: {
-        description: "列出此路线包含的服务，如：餐饮、专车、导游、酒店、代付等。中英文均可填写。",
+        description: "列出此路线包含的服务，如：餐饮、专车、导游、酒店、代付等。在同一页填写中英文。",
       },
       fields: [
         {
-          name: "item",
-          type: "text",
-          label: "包含项目",
-          localized: true,
+          type: "row",
+          fields: [
+            {
+              name: "itemZh",
+              type: "text",
+              label: "包含项目（中文）",
+              admin: { width: "50%" },
+            },
+            {
+              name: "itemEn",
+              type: "text",
+              label: "Included Item (EN)",
+              admin: { width: "50%" },
+            },
+          ],
         },
       ],
     },
 
     // ─── 旅游注意事项 ─────────────────────────────────────────────
-    {
-      name: "travelTips",
-      type: "textarea",
-      label: "旅游注意事项",
-      localized: true,
-      admin: {
-        description: "高原反应、季节温度、衣物建议等注意事项。支持中英文分别填写。",
-      },
-    },
+    { name: "travelTipsZh", type: "textarea", label: "旅游注意事项（中文）", admin: { description: "高原反应、季节温度、衣物建议等。" } },
+    { name: "travelTipsEn", type: "textarea", label: "Travel Tips (EN)" },
 
     {
       name: "dayItinerary",
@@ -148,11 +152,21 @@ export const Routes: CollectionConfig = {
           ],
         },
         {
-          name: "description",
-          type: "richText",
-          label: "当天描述",
-          localized: true,
-          admin: { description: "中英文均需填写" },
+          type: "row",
+          fields: [
+            {
+              name: "descriptionZh",
+              type: "richText",
+              label: "当天描述（中文）",
+              admin: { width: "50%" },
+            },
+            {
+              name: "descriptionEn",
+              type: "richText",
+              label: "Description (EN)",
+              admin: { width: "50%" },
+            },
+          ],
         },
       ],
     },

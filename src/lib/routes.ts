@@ -69,6 +69,8 @@ function getMediaUrl(media: unknown): string {
 
 type DayItineraryItem = {
   description?: unknown;
+  descriptionZh?: unknown;
+  descriptionEn?: unknown;
   images?: Array<{ image?: unknown }>;
 };
 
@@ -83,9 +85,18 @@ type PrRoute = PayloadRoute & {
   price_5_people?: number;
   price_6_people?: number;
   dayItinerary?: DayItineraryItem[];
-  whatsIncluded?: Array<{ item?: string; id?: string }>;
+  whatsIncluded?: Array<{ item?: string; itemZh?: string; itemEn?: string; id?: string }>;
   travelTips?: string;
+  travelTipsZh?: string;
+  travelTipsEn?: string;
 };
+
+function richTextToPlain(value: unknown): string {
+  if (!value || typeof value !== "object") return "";
+  const root = (value as { root?: unknown }).root;
+  if (!root) return "";
+  return lexicalToText(root);
+}
 
 function englishNameFromSlug(slug?: string | null): string {
   if (!slug) return "";
@@ -103,12 +114,9 @@ function mapPayloadRouteToRoute(pr: PrRoute): Route {
   const dayItinerary = pr.dayItinerary ?? [];
 
   const dayDescriptions: { zh: string; en: string }[] = dayItinerary.map((day: DayItineraryItem) => {
-    const desc = day.description;
-    let text = "";
-    if (desc && typeof desc === "object" && "root" in (desc as object)) {
-      text = lexicalToText((desc as { root?: unknown }).root);
-    }
-    return { zh: text, en: text };
+    const zhText = richTextToPlain(day.descriptionZh) || richTextToPlain(day.description);
+    const enText = richTextToPlain(day.descriptionEn) || zhText;
+    return { zh: zhText, en: enText };
   });
 
   const dayImagesList: string[][] = dayItinerary.map((day: DayItineraryItem) => {
@@ -129,8 +137,11 @@ function mapPayloadRouteToRoute(pr: PrRoute): Route {
   const daysSafe = Math.max(1, daysCount);
   const basePricePerPersonPerDay = (pr.price_2_people ?? 0) / daysSafe;
 
-  const includedItems = (pr.whatsIncluded ?? [])
-    .map((w) => w.item ?? "")
+  const includedItemsZh = (pr.whatsIncluded ?? [])
+    .map((w) => w.itemZh || w.item || "")
+    .filter(Boolean);
+  const includedItemsEn = (pr.whatsIncluded ?? [])
+    .map((w) => w.itemEn || w.itemZh || w.item || "")
     .filter(Boolean);
 
   return {
@@ -147,8 +158,11 @@ function mapPayloadRouteToRoute(pr: PrRoute): Route {
     image: imageUrl,
     dayDescriptions,
     dayImages: dayImagesList,
-    whatsIncluded: { zh: includedItems, en: includedItems },
-    travelTips: { zh: pr.travelTips ?? "", en: pr.travelTips ?? "" },
+    whatsIncluded: { zh: includedItemsZh, en: includedItemsEn },
+    travelTips: {
+      zh: pr.travelTipsZh ?? pr.travelTips ?? "",
+      en: pr.travelTipsEn ?? pr.travelTipsZh ?? pr.travelTips ?? "",
+    },
   };
 }
 
@@ -239,24 +253,16 @@ export async function getRouteBySlug(
     if (!pr) return null;
 
     const dayItinerary = (pr.dayItinerary ?? []) as DayItineraryItem[];
-    const dayDescriptionsZh = dayItinerary.map((day) => {
-      const desc = day.description;
-      let text = "";
-      if (desc && typeof desc === "object" && "root" in (desc as object)) {
-        text = lexicalToText((desc as { root?: unknown }).root);
-      }
-      return { zh: text, en: "" };
-    });
+    const dayDescriptionsZh = dayItinerary.map((day) => ({
+      zh: richTextToPlain(day.descriptionZh) || richTextToPlain(day.description),
+      en: "",
+    }));
     const docEn = dataEn?.docs?.[0];
     const dayItineraryEn = (docEn?.dayItinerary ?? []) as DayItineraryItem[];
-    const dayDescriptionsEn = dayItineraryEn.map((day) => {
-      const desc = day.description;
-      let text = "";
-      if (desc && typeof desc === "object" && "root" in (desc as object)) {
-        text = lexicalToText((desc as { root?: unknown }).root);
-      }
-      return { zh: "", en: text };
-    });
+    const dayDescriptionsEn = dayItineraryEn.map((day) => ({
+      zh: "",
+      en: richTextToPlain(day.descriptionEn) || richTextToPlain(day.descriptionZh) || richTextToPlain(day.description),
+    }));
 
     const merged = mergeDayDescriptions(dayDescriptionsZh, dayDescriptionsEn);
 
@@ -279,8 +285,8 @@ export async function getRouteBySlug(
       prZh.nameEn?.trim() ||
       englishNameFromSlug(prZh.slug) ||
       nameZh;
-    const whatsIncludedZh = (prZh.whatsIncluded ?? []).map((w) => w.item ?? "").filter(Boolean);
-    const whatsIncludedEn = (prEnDoc?.whatsIncluded ?? []).map((w) => w.item ?? "").filter(Boolean);
+    const whatsIncludedZh = (prZh.whatsIncluded ?? []).map((w) => w.itemZh || w.item || "").filter(Boolean);
+    const whatsIncludedEn = (prEnDoc?.whatsIncluded ?? []).map((w) => w.itemEn || w.itemZh || w.item || "").filter(Boolean);
 
     return {
       id: pr.slug || String(pr.id),
@@ -310,8 +316,8 @@ export async function getRouteBySlug(
         en: whatsIncludedEn.length > 0 ? whatsIncludedEn : whatsIncludedZh,
       },
       travelTips: {
-        zh: prZh.travelTips ?? "",
-        en: prEnDoc?.travelTips ?? prZh.travelTips ?? "",
+        zh: prZh.travelTipsZh ?? prZh.travelTips ?? "",
+        en: prEnDoc?.travelTipsEn ?? prEnDoc?.travelTips ?? prZh.travelTipsEn ?? prZh.travelTipsZh ?? prZh.travelTips ?? "",
       },
     };
   } catch {
