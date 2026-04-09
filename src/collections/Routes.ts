@@ -29,7 +29,7 @@ export const Routes: CollectionConfig = {
           const n = Math.round(days);
           const arr = Array.isArray(data.dayItinerary) ? [...data.dayItinerary] : [];
           while (arr.length < n) {
-            arr.push({ images: [], description: null });
+            arr.push({ images: [], descriptionZh: null, descriptionEn: null, description: null });
           }
           data.dayItinerary = arr.slice(0, n);
         }

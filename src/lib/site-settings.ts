@@ -71,6 +71,80 @@ export type SiteSettings = {
   footer: SiteFooter;
 };
 
+export function pickBilingual<T extends Record<string, unknown>>(
+  obj: T | undefined,
+  baseKey: string,
+  locale: "zh" | "en"
+): string {
+  if (!obj) return "";
+  const zh = obj[`${baseKey}Zh`];
+  const en = obj[`${baseKey}En`];
+  const old = obj[baseKey];
+  if (locale === "zh") {
+    return String(zh || old || en || "");
+  }
+  return String(en || old || zh || "");
+}
+
+export function mapSiteSettingsData(
+  data: Record<string, any> | undefined,
+  locale: "zh" | "en",
+  defaults: SiteSettings
+): SiteSettings {
+  if (!data || !data.hero) return defaults;
+
+  const whyItemsFromData = Array.isArray(data.why?.items) && data.why.items.length > 0
+    ? data.why.items.map((item: Record<string, unknown>) => ({
+        title: pickBilingual(item, "title", locale),
+        desc: pickBilingual(item, "desc", locale),
+      }))
+    : [];
+  const hasValidWhyItems = whyItemsFromData.some(
+    (item: { title: string; desc: string }) => item.title.trim() || item.desc.trim()
+  );
+
+  return {
+    hero: {
+      heroImage: getMediaUrl(data.hero?.heroImage) || defaults.hero.heroImage,
+      title: pickBilingual(data.hero, "title", locale) || defaults.hero.title,
+      tagline: pickBilingual(data.hero, "tagline", locale) || defaults.hero.tagline,
+      regionSub: pickBilingual(data.hero, "regionSub", locale) || defaults.hero.regionSub,
+      subtitle: pickBilingual(data.hero, "subtitle", locale) || defaults.hero.subtitle,
+      ctaRoutes: pickBilingual(data.hero, "ctaRoutes", locale) || defaults.hero.ctaRoutes,
+      ctaContact: pickBilingual(data.hero, "ctaContact", locale) || defaults.hero.ctaContact,
+      altImage: pickBilingual(data.hero, "altImage", locale) || defaults.hero.altImage,
+    },
+    why: {
+      sectionTitle: pickBilingual(data.why, "sectionTitle", locale) || defaults.why.sectionTitle,
+      sectionDesc: pickBilingual(data.why, "sectionDesc", locale) || defaults.why.sectionDesc,
+      items: hasValidWhyItems ? whyItemsFromData : defaults.why.items,
+      paymentTitle: pickBilingual(data.why, "paymentTitle", locale) || defaults.why.paymentTitle,
+      paymentDesc: pickBilingual(data.why, "paymentDesc", locale) || defaults.why.paymentDesc,
+      translationTitle: pickBilingual(data.why, "translationTitle", locale) || defaults.why.translationTitle,
+      translationDesc: pickBilingual(data.why, "translationDesc", locale) || defaults.why.translationDesc,
+    },
+    journal: {
+      sectionTitle: pickBilingual(data.journal, "sectionTitle", locale) || defaults.journal.sectionTitle,
+      sectionDesc: pickBilingual(data.journal, "sectionDesc", locale) || defaults.journal.sectionDesc,
+    },
+    about: {
+      title: pickBilingual(data.about, "title", locale) || defaults.about.title,
+      body: pickBilingual(data.about, "body", locale) || defaults.about.body,
+    },
+    footer: {
+      desc: pickBilingual(data.footer, "desc", locale) || defaults.footer.desc,
+      copyright: pickBilingual(data.footer, "copyright", locale) || defaults.footer.copyright,
+      email: data.footer?.email || defaults.footer.email,
+      instagram: data.footer?.instagram || defaults.footer.instagram,
+      facebook: data.footer?.facebook || defaults.footer.facebook,
+      whatsapp: data.footer?.whatsapp || defaults.footer.whatsapp,
+      telegram: data.footer?.telegram || defaults.footer.telegram,
+      wechat: data.footer?.wechat || defaults.footer.wechat,
+      qrImage: getMediaUrl(data.footer?.qrImage) || defaults.footer.qrImage,
+    },
+  };
+}
+
 /** 兜底数据：DB 为空时回退到 locale 文件中的默认值 */
 function getDefaults(locale: "zh" | "en"): SiteSettings {
   const t = locale === "zh" ? zh : en;
@@ -126,60 +200,7 @@ export async function getSiteSettings(locale: "zh" | "en" = "zh"): Promise<SiteS
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return defaults;
     const data = await res.json();
-
-    // 如果 DB 还未初始化任何内容，就用默认值
-    if (!data || !data.hero) return defaults;
-
-    const whyItemsFromData = Array.isArray(data.why?.items) && data.why.items.length > 0
-      ? data.why.items.map((item: { title?: string; desc?: string }) => ({
-          title: item.title || "",
-          desc: item.desc || "",
-        }))
-      : [];
-    const hasValidWhyItems = whyItemsFromData.some(
-      (item: { title: string; desc: string }) => item.title.trim() || item.desc.trim()
-    );
-
-    return {
-      hero: {
-        heroImage: getMediaUrl(data.hero?.heroImage) || defaults.hero.heroImage,
-        title: data.hero?.title || defaults.hero.title,
-        tagline: data.hero?.tagline || defaults.hero.tagline,
-        regionSub: data.hero?.regionSub || defaults.hero.regionSub,
-        subtitle: data.hero?.subtitle || defaults.hero.subtitle,
-        ctaRoutes: data.hero?.ctaRoutes || defaults.hero.ctaRoutes,
-        ctaContact: data.hero?.ctaContact || defaults.hero.ctaContact,
-        altImage: data.hero?.altImage || defaults.hero.altImage,
-      },
-      why: {
-        sectionTitle: data.why?.sectionTitle || defaults.why.sectionTitle,
-        sectionDesc: data.why?.sectionDesc || defaults.why.sectionDesc,
-        items: hasValidWhyItems ? whyItemsFromData : defaults.why.items,
-        paymentTitle: data.why?.paymentTitle || defaults.why.paymentTitle,
-        paymentDesc: data.why?.paymentDesc || defaults.why.paymentDesc,
-        translationTitle: data.why?.translationTitle || defaults.why.translationTitle,
-        translationDesc: data.why?.translationDesc || defaults.why.translationDesc,
-      },
-      journal: {
-        sectionTitle: data.journal?.sectionTitle || defaults.journal.sectionTitle,
-        sectionDesc: data.journal?.sectionDesc || defaults.journal.sectionDesc,
-      },
-      about: {
-        title: data.about?.title || defaults.about.title,
-        body: data.about?.body || defaults.about.body,
-      },
-      footer: {
-        desc: data.footer?.desc || defaults.footer.desc,
-        copyright: data.footer?.copyright || defaults.footer.copyright,
-        email: data.footer?.email || defaults.footer.email,
-        instagram: data.footer?.instagram || defaults.footer.instagram,
-        facebook: data.footer?.facebook || defaults.footer.facebook,
-        whatsapp: data.footer?.whatsapp || defaults.footer.whatsapp,
-        telegram: data.footer?.telegram || defaults.footer.telegram,
-        wechat: data.footer?.wechat || defaults.footer.wechat,
-        qrImage: getMediaUrl(data.footer?.qrImage) || defaults.footer.qrImage,
-      },
-    };
+    return mapSiteSettingsData(data, locale, defaults);
   } catch {
     return defaults;
   }

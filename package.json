@@ -13,6 +13,9 @@
     "migrate:routes": "bash scripts/migrate-routes-schema.sh",
     "seed:routes": "sqlite3 payload.db < scripts/seed-routes.sql",
     "seed:site": "tsx scripts/seed-site.ts",
+    "test:site-settings": "tsx scripts/test-site-settings-bilingual.ts",
+    "test:routes-api:prepare": "tsx scripts/prepare-routes-api-test.ts",
+    "test:routes-api": "tsx scripts/test-routes-api.ts",
     "verify:home": "bash scripts/verify-homepage.sh",
     "deploy:server": "bash scripts/deploy-server.sh",
     "deploy:update-verify": "bash scripts/update-and-verify.sh"

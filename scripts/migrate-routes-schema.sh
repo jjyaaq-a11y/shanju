@@ -16,11 +16,28 @@ add_col() {
 
 add_col overview_zh text
 add_col overview_en text
+add_col travel_tips_zh text
+add_col travel_tips_en text
 add_col price_2_people numeric
 add_col price_3_people numeric
 add_col price_4_people numeric
 add_col price_5_people numeric
 add_col price_6_people numeric
+
+add_array_col() {
+  local table=$1
+  local col=$2
+  local typ=$3
+  if ! sqlite3 "$DB" "SELECT 1 FROM pragma_table_info('$table') WHERE name='$col';" | grep -q 1; then
+    sqlite3 "$DB" "ALTER TABLE $table ADD COLUMN $col $typ;"
+    echo "Added column: $table.$col"
+  fi
+}
+
+add_array_col routes_whats_included item_zh text
+add_array_col routes_whats_included item_en text
+add_array_col routes_day_itinerary description_zh text
+add_array_col routes_day_itinerary description_en text
 
 # 迁移旧数据到新列（若表仍有 base_price_per_person_per_day）
 if sqlite3 "$DB" "SELECT 1 FROM pragma_table_info('routes') WHERE name='base_price_per_person_per_day';" | grep -q 1; then
