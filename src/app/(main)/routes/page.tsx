@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { CmsImage } from "@/components/ui/CmsImage";
 import { getLocaleFromRequest } from "@/lib/locale-server";
 import { getRoutesPage } from "@/lib/routes";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -50,12 +50,13 @@ export default async function RoutesListPage({ searchParams }: RoutesListPagePro
               >
                 <Link href={`/routes/${route.id}`} className="block">
                   <div className="relative aspect-[16/10] bg-rock/10">
-                    {route.image && (
-                      <Image
-                        src={route.image}
+                    {route.image.url && (
+                      <CmsImage
+                        src={route.image.url}
                         alt={route.name[locale]}
                         fill
                         className="object-cover"
+                        rotation={route.image.rotation}
                         sizes="(max-width: 768px) 100vw, 50vw"
                         unoptimized
                       />

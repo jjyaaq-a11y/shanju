@@ -14,6 +14,12 @@ export const Media: CollectionConfig = {
   },
   upload: {
     staticDir: "media",
+    formatOptions: {
+      format: "webp",
+      options: {
+        quality: 88,
+      },
+    },
     imageSizes: [
       { name: "thumbnail", width: 400, height: 300, position: "centre" },
       { name: "card", width: 768, height: 512, position: "centre" },
@@ -23,6 +29,21 @@ export const Media: CollectionConfig = {
     mimeTypes: ["image/*"],
   },
   fields: [
+    {
+      name: "rotation",
+      type: "select",
+      label: "前台旋转角度",
+      defaultValue: "0",
+      options: [
+        { label: "0°", value: "0" },
+        { label: "90°", value: "90" },
+        { label: "180°", value: "180" },
+        { label: "270°", value: "270" },
+      ],
+      admin: {
+        description: "上传后若画面方向不对，可在这里调整；保存后前台会立即按该角度展示。",
+      },
+    },
     {
       name: "alt",
       type: "text",

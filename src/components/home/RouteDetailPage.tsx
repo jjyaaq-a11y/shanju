@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useLocale } from "@/contexts/LocaleContext";
 import { InquiryForm } from "@/components/home/InquiryForm";
+import { CmsImage } from "@/components/ui/CmsImage";
 import type { Route } from "@/lib/routes";
 import { ChevronLeft, CheckCircle2, AlertTriangle } from "lucide-react";
 
@@ -35,13 +35,14 @@ export function RouteDetailPage({ route }: RouteDetailPageProps) {
           {/* ── 左栏：路线内容 ── */}
           <div>
             {/* 头图 */}
-            {route.image && (
+            {route.image.url && (
               <div className="relative aspect-[21/9] rounded-xl overflow-hidden bg-rock/10 mb-8">
-                <Image
-                  src={route.image}
+                <CmsImage
+                  src={route.image.url}
                   alt={route.name[localeKey]}
                   fill
                   className="object-cover"
+                  rotation={route.image.rotation}
                   priority
                   sizes="(max-width: 768px) 100vw, (max-width: 1280px) 65vw, 800px"
                   unoptimized
@@ -75,16 +76,17 @@ export function RouteDetailPage({ route }: RouteDetailPageProps) {
                       key={i}
                       className="rounded-xl border border-rock/20 bg-white/90 overflow-hidden shadow-sm"
                     >
-                      {(route.dayImages[i] ?? []).map((imgUrl, j) => (
+                      {(route.dayImages[i] ?? []).map((img, j) => (
                         <div
-                          key={j}
+                          key={`${img.url}-${j}`}
                           className="relative aspect-[21/9] sm:aspect-[3/1] bg-rock/10"
                         >
-                          <Image
-                            src={imgUrl}
+                          <CmsImage
+                            src={img.url}
                             alt={locale === "zh" ? `第 ${i + 1} 天` : `Day ${i + 1}`}
                             fill
                             className="object-cover"
+                            rotation={img.rotation}
                             sizes="(max-width: 640px) 100vw, (max-width: 1280px) 65vw, 800px"
                             unoptimized
                           />

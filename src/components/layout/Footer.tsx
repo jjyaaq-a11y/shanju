@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { CmsImage } from "@/components/ui/CmsImage";
 import { useLocale } from "@/contexts/LocaleContext";
 import type { SiteFooter } from "@/lib/site-settings";
 
@@ -132,13 +132,14 @@ export function Footer({ siteFooter }: FooterProps) {
               )}
             </ul>
 
-            {siteFooter.qrImage ? (
+            {siteFooter.qrImage.url ? (
               <div className="mt-4 w-28 h-28 rounded-lg overflow-hidden relative">
-                <Image
-                  src={siteFooter.qrImage}
+                <CmsImage
+                  src={siteFooter.qrImage.url}
                   alt={t.footer.qrPlaceholder}
                   fill
                   className="object-cover"
+                  rotation={siteFooter.qrImage.rotation}
                   unoptimized
                 />
               </div>

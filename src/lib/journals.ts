@@ -1,20 +1,7 @@
-import type { Media } from "payload-types";
+import { EMPTY_MEDIA_ASSET, getMediaAsset, type MediaAsset } from "@/lib/media";
 
 const PAYLOAD_API =
   process.env.PAYLOAD_URL || process.env.NEXT_PUBLIC_PAYLOAD_URL || "http://localhost:3000";
-const PAYLOAD_PUBLIC =
-  process.env.NEXT_PUBLIC_PAYLOAD_URL || process.env.PAYLOAD_URL || "http://localhost:3000";
-
-function getMediaUrl(media: unknown): string {
-  if (!media || typeof media !== "object") return "";
-  const m = media as Media;
-  const rawUrl = m.url;
-  if (!rawUrl) return "";
-  if (rawUrl.startsWith("http")) return rawUrl;
-  if (rawUrl.startsWith("/")) return rawUrl;
-  const base = PAYLOAD_PUBLIC.replace(/\/$/, "");
-  return `${base}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
-}
 
 export type Journal = {
   id: string;
@@ -23,8 +10,8 @@ export type Journal = {
   excerpt: string;
   tag: string;
   date: string;
-  image: string;
-  contentImages: string[];
+  image: MediaAsset;
+  contentImages: MediaAsset[];
 };
 
 export type JournalListResult = {
@@ -40,10 +27,10 @@ function mapJournal(doc: Record<string, unknown>): Journal {
   const contentImagesRaw = Array.isArray(doc.contentImages) ? doc.contentImages : [];
   const contentImages = contentImagesRaw
     .map((item) => {
-      if (!item || typeof item !== "object") return "";
-      return getMediaUrl((item as Record<string, unknown>).image);
+      if (!item || typeof item !== "object") return EMPTY_MEDIA_ASSET;
+      return getMediaAsset((item as Record<string, unknown>).image);
     })
-    .filter((url): url is string => Boolean(url));
+    .filter((asset): asset is MediaAsset => Boolean(asset.url));
 
   return {
     id: String(doc.id),
@@ -52,7 +39,7 @@ function mapJournal(doc: Record<string, unknown>): Journal {
     excerpt: (doc.excerpt as string) || "",
     tag: (doc.tag as string) || "",
     date: (doc.date as string) || "",
-    image: getMediaUrl(doc.image) || "",
+    image: getMediaAsset(doc.image) || EMPTY_MEDIA_ASSET,
     contentImages,
   };
 }

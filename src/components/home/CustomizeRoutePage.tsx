@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { ImageDebug } from "@/components/ui/ImageDebug";
 import { useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -24,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AddonOptionBlock } from "./AddonOptionBlock";
 import { InquiryForm } from "./InquiryForm";
 import { ChevronLeft } from "lucide-react";
+import { CmsImage } from "@/components/ui/CmsImage";
 
 const SEASON_FACTORS = {
   spring: 1.0,
@@ -195,18 +195,19 @@ export function CustomizeRoutePage({ route, addonsConfig }: CustomizeRoutePagePr
       </div>
 
       <div className="mx-auto max-w-3xl px-4 py-8 pb-16">
-        {route.image && (
+        {route.image.url && (
           <div className="relative aspect-[21/9] rounded-xl overflow-hidden bg-rock/10 mb-8">
-            <Image
-              src={route.image}
+            <CmsImage
+              src={route.image.url}
               alt={route.name[localeKey]}
               fill
               className="object-cover"
+              rotation={route.image.rotation}
               priority
               sizes="(max-width: 768px) 100vw, 672px"
               unoptimized
             />
-            <ImageDebug label="定制页头图" src={route.image} />
+            <ImageDebug label="定制页头图" src={route.image.url} />
           </div>
         )}
         <h1 className="font-serif text-2xl md:text-3xl font-semibold text-ink mb-1">

@@ -1,25 +1,12 @@
-import type { Media } from "payload-types";
+import { EMPTY_MEDIA_ASSET, getMediaAsset, type MediaAsset } from "@/lib/media";
 import { zh } from "@/locales/zh";
 import { en } from "@/locales/en";
 
 const PAYLOAD_API =
   process.env.PAYLOAD_URL || process.env.NEXT_PUBLIC_PAYLOAD_URL || "http://localhost:3000";
-const PAYLOAD_PUBLIC =
-  process.env.NEXT_PUBLIC_PAYLOAD_URL || process.env.PAYLOAD_URL || "http://localhost:3000";
-
-function getMediaUrl(media: unknown): string {
-  if (!media || typeof media !== "object") return "";
-  const m = media as Media;
-  const rawUrl = m.url;
-  if (!rawUrl) return "";
-  if (rawUrl.startsWith("http")) return rawUrl;
-  if (rawUrl.startsWith("/")) return rawUrl;
-  const base = PAYLOAD_PUBLIC.replace(/\/$/, "");
-  return `${base}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
-}
 
 export type SiteHero = {
-  heroImage: string;
+  heroImage: MediaAsset;
   title: string;
   tagline: string;
   regionSub: string;
@@ -60,7 +47,7 @@ export type SiteFooter = {
   whatsapp: string;
   telegram: string;
   wechat: string;
-  qrImage: string;
+  qrImage: MediaAsset;
 };
 
 export type SiteSettings = {
@@ -105,7 +92,7 @@ export function mapSiteSettingsData(
 
   return {
     hero: {
-      heroImage: getMediaUrl(data.hero?.heroImage) || defaults.hero.heroImage,
+      heroImage: data.hero?.heroImage ? getMediaAsset(data.hero.heroImage) : defaults.hero.heroImage,
       title: pickBilingual(data.hero, "title", locale) || defaults.hero.title,
       tagline: pickBilingual(data.hero, "tagline", locale) || defaults.hero.tagline,
       regionSub: pickBilingual(data.hero, "regionSub", locale) || defaults.hero.regionSub,
@@ -140,7 +127,7 @@ export function mapSiteSettingsData(
       whatsapp: data.footer?.whatsapp || defaults.footer.whatsapp,
       telegram: data.footer?.telegram || defaults.footer.telegram,
       wechat: data.footer?.wechat || defaults.footer.wechat,
-      qrImage: getMediaUrl(data.footer?.qrImage) || defaults.footer.qrImage,
+      qrImage: data.footer?.qrImage ? getMediaAsset(data.footer.qrImage) : defaults.footer.qrImage,
     },
   };
 }
@@ -150,7 +137,7 @@ function getDefaults(locale: "zh" | "en"): SiteSettings {
   const t = locale === "zh" ? zh : en;
   return {
     hero: {
-      heroImage: "",
+      heroImage: EMPTY_MEDIA_ASSET,
       title: t.hero.title,
       tagline: t.hero.tagline,
       regionSub: t.hero.regionSub,
@@ -188,7 +175,7 @@ function getDefaults(locale: "zh" | "en"): SiteSettings {
       whatsapp: t.footer.whatsapp,
       telegram: t.footer.telegram,
       wechat: t.footer.wechat,
-      qrImage: "",
+      qrImage: EMPTY_MEDIA_ASSET,
     },
   };
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CmsImage } from "@/components/ui/CmsImage";
 import { useLocale } from "@/contexts/LocaleContext";
 import type { Journal } from "@/lib/journals";
 import type { SiteJournalSection } from "@/lib/site-settings";
@@ -62,12 +62,13 @@ export function SectionJournal({ journals, siteJournal }: SectionJournalProps) {
             <motion.div key={post.id} variants={cardItem}>
               <Card className="overflow-hidden border-rock/15 h-full flex flex-col hover:shadow-lg transition-shadow">
                 <div className="relative aspect-[16/10] overflow-hidden">
-                  {post.image && (
-                    <Image
-                      src={post.image}
+                  {post.image.url && (
+                    <CmsImage
+                      src={post.image.url}
                       alt={post.title}
                       fill
                       className="object-cover"
+                      rotation={post.image.rotation}
                       sizes="(max-width: 768px) 100vw, 33vw"
                       unoptimized
                     />

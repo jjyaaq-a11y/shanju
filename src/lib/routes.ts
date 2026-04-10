@@ -1,10 +1,8 @@
 import type { Route as PayloadRoute, Media } from "payload-types";
+import { EMPTY_MEDIA_ASSET, getMediaAsset, type MediaAsset } from "@/lib/media";
 
 const PAYLOAD_API =
   process.env.PAYLOAD_URL || process.env.NEXT_PUBLIC_PAYLOAD_URL || "http://localhost:3000";
-const PAYLOAD_PUBLIC =
-  process.env.NEXT_PUBLIC_PAYLOAD_URL || process.env.PAYLOAD_URL || "http://localhost:3000";
-
 export type LocaleKey = "zh" | "en";
 
 /** Extract plain text from Lexical JSON */
@@ -28,10 +26,10 @@ export type Route = {
   pricePerGroup: Record<2 | 3 | 4 | 5 | 6, number>;
   /** 每人每天基础价（由 pricePerGroup 推导，用于定制页预算计算） */
   basePricePerPersonPerDay: number;
-  image: string;
+  image: MediaAsset;
   dayDescriptions: { zh: string; en: string }[];
   /** 每天多张图片：dayImages[dayIndex] = [url1, url2] */
-  dayImages: string[][];
+  dayImages: MediaAsset[][];
   /** 行程包含的服务列表（我们提供） */
   whatsIncluded: { zh: string[]; en: string[] };
   /** 旅游注意事项 */
@@ -52,19 +50,6 @@ function formatDays(daysCount: number, locale: LocaleKey): string {
   return locale === "zh"
     ? `${daysCount}天${nights}晚`
     : `${daysCount}D ${nights}N`;
-}
-
-function getMediaUrl(media: unknown): string {
-  if (media == null) return "";
-  const m = typeof media === "object" ? (media as Media) : null;
-  if (!m) return "";
-  const mediaObj = m as Media & { sizes?: { card?: { url?: string }; tablet?: { url?: string } } };
-  const rawUrl = mediaObj.url || mediaObj.sizes?.card?.url || mediaObj.sizes?.tablet?.url;
-  if (!rawUrl) return "";
-  if (rawUrl.startsWith("http")) return rawUrl;
-  if (rawUrl.startsWith("/")) return rawUrl;
-  const base = PAYLOAD_PUBLIC.replace(/\/$/, "");
-  return `${base}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
 }
 
 type DayItineraryItem = {
@@ -119,13 +104,13 @@ function mapPayloadRouteToRoute(pr: PrRoute): Route {
     return { zh: zhText, en: enText };
   });
 
-  const dayImagesList: string[][] = dayItinerary.map((day: DayItineraryItem) => {
+  const dayImagesList: MediaAsset[][] = dayItinerary.map((day: DayItineraryItem) => {
     return (day.images ?? [])
-      .map((item) => getMediaUrl(item.image))
-      .filter((url): url is string => Boolean(url));
+      .map((item) => getMediaAsset(item.image))
+      .filter((asset): asset is MediaAsset => Boolean(asset.url));
   });
 
-  const imageUrl = getMediaUrl(pr.heroImage) || "";
+  const imageAsset = pr.heroImage ? getMediaAsset(pr.heroImage) : EMPTY_MEDIA_ASSET;
 
   const pricePerGroup: Record<2 | 3 | 4 | 5 | 6, number> = {
     2: pr.price_2_people ?? 0,
@@ -155,7 +140,7 @@ function mapPayloadRouteToRoute(pr: PrRoute): Route {
     },
     pricePerGroup,
     basePricePerPersonPerDay,
-    image: imageUrl,
+    image: imageAsset,
     dayDescriptions,
     dayImages: dayImagesList,
     whatsIncluded: { zh: includedItemsZh, en: includedItemsEn },
@@ -266,13 +251,13 @@ export async function getRouteBySlug(
 
     const merged = mergeDayDescriptions(dayDescriptionsZh, dayDescriptionsEn);
 
-    const dayImagesList: string[][] = dayItinerary.map((day: DayItineraryItem) => {
+    const dayImagesList: MediaAsset[][] = dayItinerary.map((day: DayItineraryItem) => {
       return (day.images ?? [])
-        .map((item) => getMediaUrl(item.image))
-        .filter((url): url is string => Boolean(url));
+        .map((item) => getMediaAsset(item.image))
+        .filter((asset): asset is MediaAsset => Boolean(asset.url));
     });
 
-    const imageUrl = getMediaUrl(pr.heroImage) || "";
+    const imageAsset = pr.heroImage ? getMediaAsset(pr.heroImage) : EMPTY_MEDIA_ASSET;
     const daysSafe = Math.max(1, pr.daysCount ?? 0);
     const basePricePerPersonPerDay = (pr.price_2_people ?? 0) / daysSafe;
 
@@ -308,7 +293,7 @@ export async function getRouteBySlug(
         6: pr.price_6_people ?? 0,
       },
       basePricePerPersonPerDay,
-      image: imageUrl,
+      image: imageAsset,
       dayDescriptions: merged,
       dayImages: dayImagesList,
       whatsIncluded: {

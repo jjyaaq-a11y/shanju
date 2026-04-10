@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { CmsImage } from "@/components/ui/CmsImage";
 import type { Journal } from "@/lib/journals";
 
 type JournalDetailPageProps = {
@@ -37,13 +37,14 @@ export function JournalDetailPage({ journal, locale }: JournalDetailPageProps) {
           )}
         </header>
 
-        {journal.image && (
+        {journal.image.url && (
           <div className="relative mt-8 aspect-[16/10] w-full overflow-hidden rounded-2xl bg-rock/15 shadow-sm">
-            <Image
-              src={journal.image}
+            <CmsImage
+              src={journal.image.url}
               alt={journal.title}
               fill
               className="object-cover"
+              rotation={journal.image.rotation}
               sizes="(max-width: 768px) 100vw, 768px"
               priority
               unoptimized
@@ -55,15 +56,16 @@ export function JournalDetailPage({ journal, locale }: JournalDetailPageProps) {
           <section className="mt-8 space-y-4">
             {journal.contentImages.map((img, idx) => (
               <div
-                key={`${img}-${idx}`}
+                key={`${img.url}-${idx}`}
                 className="relative w-full overflow-hidden rounded-xl border border-rock/15 bg-white/80"
               >
-                <Image
-                  src={img}
+                <CmsImage
+                  src={img.url}
                   alt={`${journal.title} ${idx + 1}`}
                   width={1200}
                   height={1800}
                   className="h-auto w-full object-contain"
+                  rotation={img.rotation}
                   sizes="(max-width: 768px) 100vw, 768px"
                   unoptimized
                 />

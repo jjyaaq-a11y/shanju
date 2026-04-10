@@ -94,6 +94,10 @@ if [[ "$SKIP_INSTALL" -eq 0 ]]; then
   npm install --no-fund --no-audit
 fi
 
+log "Running db schema migration..."
+npm run migrate:media
+npm run migrate:routes
+
 log "Building project..."
 npm run build
 

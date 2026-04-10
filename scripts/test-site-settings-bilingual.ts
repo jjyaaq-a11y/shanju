@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { EMPTY_MEDIA_ASSET } from "../src/lib/media";
 import { mapSiteSettingsData } from "../src/lib/site-settings";
 import { zh } from "../src/locales/zh";
 import { en } from "../src/locales/en";
@@ -7,7 +8,7 @@ function getDefaults(locale: "zh" | "en") {
   const t = locale === "zh" ? zh : en;
   return {
     hero: {
-      heroImage: "",
+      heroImage: EMPTY_MEDIA_ASSET,
       title: t.hero.title,
       tagline: t.hero.tagline,
       regionSub: t.hero.regionSub,
@@ -42,7 +43,7 @@ function getDefaults(locale: "zh" | "en") {
       whatsapp: t.footer.whatsapp,
       telegram: t.footer.telegram,
       wechat: t.footer.wechat,
-      qrImage: "",
+      qrImage: EMPTY_MEDIA_ASSET,
     },
   };
 }

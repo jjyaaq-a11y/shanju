@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { CmsImage } from "@/components/ui/CmsImage";
 import { getLocaleFromRequest } from "@/lib/locale-server";
 import { getJournals } from "@/lib/journals";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -50,12 +50,13 @@ export default async function JournalListPage({ searchParams }: JournalListPageP
               >
                 <Link href={`/journal/${post.slug}`} className="block">
                   <div className="relative aspect-[16/10] bg-rock/10">
-                    {post.image && (
-                      <Image
-                        src={post.image}
+                    {post.image.url && (
+                      <CmsImage
+                        src={post.image.url}
                         alt={post.title}
                         fill
                         className="object-cover"
+                        rotation={post.image.rotation}
                         sizes="(max-width: 768px) 100vw, 50vw"
                         unoptimized
                       />

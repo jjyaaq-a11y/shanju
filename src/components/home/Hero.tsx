@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { CmsImage } from "@/components/ui/CmsImage";
 import type { SiteHero } from "@/lib/site-settings";
 
 type HeroProps = { siteHero: SiteHero };
@@ -11,12 +11,13 @@ export function Hero({ siteHero }: HeroProps) {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0 z-0">
-        {siteHero.heroImage && (
-          <Image
-            src={siteHero.heroImage}
+        {siteHero.heroImage.url && (
+          <CmsImage
+            src={siteHero.heroImage.url}
             alt={siteHero.altImage}
             fill
             className="object-cover"
+            rotation={siteHero.heroImage.rotation}
             priority
             sizes="100vw"
             unoptimized

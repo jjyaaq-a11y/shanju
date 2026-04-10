@@ -129,6 +129,7 @@ fi
 
 if [[ "$INIT_DB" -eq 1 ]]; then
   log "Running db schema migration..."
+  npm run migrate:media
   npm run migrate:routes
 
   ROUTES_COUNT="$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM routes;" 2>/dev/null || echo 0)"

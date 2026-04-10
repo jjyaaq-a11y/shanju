@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ImageDebug } from "@/components/ui/ImageDebug";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CmsImage } from "@/components/ui/CmsImage";
 import { useLocale } from "@/contexts/LocaleContext";
 import type { Route } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -63,17 +63,18 @@ export function SectionRoutes({ routes }: SectionRoutesProps) {
                 )}
               >
                 <div className="relative aspect-[4/5] overflow-hidden bg-rock/10">
-                  {route.image && (
+                  {route.image.url && (
                     <>
-                      <Image
-                        src={route.image}
+                      <CmsImage
+                        src={route.image.url}
                         alt={route.name[localeKey]}
                         fill
                         className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        rotation={route.image.rotation}
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         unoptimized
                       />
-                      <ImageDebug label={`route:${route.id}`} src={route.image} />
+                      <ImageDebug label={`route:${route.id}`} src={route.image.url} />
                     </>
                   )}
                 </div>

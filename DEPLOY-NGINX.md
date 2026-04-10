@@ -307,6 +307,7 @@ ExecStart=/bin/sh -c 'exec /usr/bin/node server.js >> /var/log/shanju.log 2>&1'
 server {
     listen 80;
     server_name your-domain.com;   # 改成你的域名或服务器 IP
+    client_max_body_size 25m;      # 允许后台上传较大的图片
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -344,6 +345,7 @@ sudo systemctl reload nginx
 server {
     listen 443 ssl;
     server_name your-domain.com;   # 改成你的域名
+    client_max_body_size 25m;      # 允许后台上传较大的图片
 
     ssl_certificate     /etc/letsencrypt/live/your-domain.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
@@ -361,6 +363,8 @@ server {
     }
 }
 ```
+
+说明：应用侧已把上传请求限制放宽到 `25MB`，但如果 Nginx 没同步配置 `client_max_body_size 25m;`，线上依然会在代理层直接返回 `413 Request Entity Too Large`。
 
 **获取免费证书（Let’s Encrypt）**：若 80 暂时可用，可用 certbot 申请（申请时 certbot 会临时占用 80）：
 
