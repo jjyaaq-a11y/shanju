@@ -13,6 +13,7 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { locale, setLocale, t } = useLocale();
+
   const switchLocale = (next: "zh" | "en") => {
     if (next === locale) return;
     setLocale(next);
@@ -20,6 +21,15 @@ export function Navbar() {
       router.refresh();
     });
   };
+
+  const localeButtonClass = (target: "zh" | "en", compact = false) =>
+    cn(
+      "rounded-full transition-all duration-200",
+      compact ? "px-3 py-1.5 text-xs font-semibold" : "px-3.5 py-2 text-sm font-semibold",
+      locale === target
+        ? "bg-plateau text-cream shadow-sm shadow-plateau/30"
+        : "text-rock/80 hover:bg-cream hover:text-ink"
+    );
 
   const navItems = navKeys.map((key) => ({
     href:
@@ -64,53 +74,46 @@ export function Navbar() {
               </li>
             ))}
           </ul>
-          <div className="flex items-center gap-1 border-l border-rock/20 pl-6">
-            <button
-              type="button"
-              onClick={() => switchLocale("zh")}
-              className={cn(
-                "text-sm px-2 py-1 rounded transition-colors",
-                locale === "zh" ? "text-plateau font-medium" : "text-rock/70 hover:text-ink"
-              )}
-              aria-label="中文"
-            >
-              中文
-            </button>
-            <span className="text-rock/40">|</span>
-            <button
-              type="button"
-              onClick={() => switchLocale("en")}
-              className={cn(
-                "text-sm px-2 py-1 rounded transition-colors",
-                locale === "en" ? "text-plateau font-medium" : "text-rock/70 hover:text-ink"
-              )}
-              aria-label="English"
-            >
-              EN
-            </button>
+          <div className="border-l border-rock/20 pl-6">
+            <div className="flex items-center gap-1 rounded-full border border-plateau/20 bg-white/75 p-1 shadow-sm shadow-rock/10 backdrop-blur-sm">
+              <span className="sr-only">Switch language</span>
+              <button
+                type="button"
+                onClick={() => switchLocale("zh")}
+                className={localeButtonClass("zh")}
+                aria-label="中文"
+                aria-pressed={locale === "zh"}
+              >
+                中文
+              </button>
+              <button
+                type="button"
+                onClick={() => switchLocale("en")}
+                className={localeButtonClass("en")}
+                aria-label="English"
+                aria-pressed={locale === "en"}
+              >
+                EN
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="flex md:hidden items-center gap-3">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 rounded-full border border-plateau/20 bg-white/80 p-1 shadow-sm shadow-rock/10 backdrop-blur-sm">
             <button
               type="button"
               onClick={() => switchLocale("zh")}
-              className={cn(
-                "text-xs px-2 py-1 rounded",
-                locale === "zh" ? "text-plateau font-medium" : "text-rock/70"
-              )}
+              className={localeButtonClass("zh", true)}
+              aria-pressed={locale === "zh"}
             >
               中文
             </button>
-            <span className="text-rock/40">|</span>
             <button
               type="button"
               onClick={() => switchLocale("en")}
-              className={cn(
-                "text-xs px-2 py-1 rounded",
-                locale === "en" ? "text-plateau font-medium" : "text-rock/70"
-              )}
+              className={localeButtonClass("en", true)}
+              aria-pressed={locale === "en"}
             >
               EN
             </button>
