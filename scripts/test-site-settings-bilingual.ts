@@ -8,7 +8,7 @@ function getDefaults(locale: "zh" | "en") {
   const t = locale === "zh" ? zh : en;
   return {
     hero: {
-      heroImage: EMPTY_MEDIA_ASSET,
+      heroImages: [EMPTY_MEDIA_ASSET],
       title: t.hero.title,
       tagline: t.hero.tagline,
       regionSub: t.hero.regionSub,
@@ -50,6 +50,10 @@ function getDefaults(locale: "zh" | "en") {
 
 const savedShape = {
   hero: {
+    heroImages: [
+      { image: { url: "/api/media/file/hero-1.jpg", rotation: "90" } },
+      { image: { url: "/api/media/file/hero-2.jpg" } },
+    ],
     titleZh: "中文主标题",
     titleEn: "English Hero",
     taglineZh: "中文标语",
@@ -116,6 +120,8 @@ const enMapped = mapSiteSettingsData(savedShape, "en", getDefaults("en"));
 
 assert.equal(zhMapped.hero.title, "中文主标题");
 assert.equal(enMapped.hero.title, "English Hero");
+assert.equal(zhMapped.hero.heroImages.length, 2);
+assert.equal(zhMapped.hero.heroImages[0]?.rotation, 90);
 assert.equal(zhMapped.why.items[0]?.title, "中文1");
 assert.equal(enMapped.why.items[0]?.title, "English1");
 assert.equal(zhMapped.about.body, "中文正文");
@@ -125,6 +131,7 @@ assert.equal(enMapped.footer.desc, "English Footer");
 
 const legacyShape = {
   hero: {
+    heroImage: { url: "/api/media/file/legacy-hero.jpg" },
     title: "旧标题",
     tagline: "旧标语",
   },
@@ -138,6 +145,7 @@ const legacyShape = {
 
 const legacyMapped = mapSiteSettingsData(legacyShape, "zh", getDefaults("zh"));
 assert.equal(legacyMapped.hero.title, "旧标题");
+assert.equal(legacyMapped.hero.heroImages[0]?.url, "/api/media/file/legacy-hero.jpg");
 assert.equal(legacyMapped.why.items[0]?.title, "旧标题1");
 
 console.log("PASS: site-settings bilingual mapping works for new and legacy saved shapes");

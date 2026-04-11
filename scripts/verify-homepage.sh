@@ -28,8 +28,8 @@ JOURNALS_JSON="$TMP_DIR/journals.json"
 JOURNALS_CODE="$(curl --noproxy '*' -sS -o "$JOURNALS_JSON" -w '%{http_code}' "$BASE_URL/api/journals?locale=zh&fallbackLocale=zh&limit=1&depth=0&where%5Bpublished%5D%5Bequals%5D=true")"
 [[ "$JOURNALS_CODE" == "200" ]] || fail "Journals API HTTP status is $JOURNALS_CODE (expected 200)"
 
-HERO_URL="$(node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const u=j?.hero?.heroImage?.url||'';process.stdout.write(u);" "$SITE_SETTINGS_JSON")"
-[[ -n "$HERO_URL" ]] || fail "site-settings.hero.heroImage.url is empty"
+HERO_URL="$(node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const arr=j?.hero?.heroImages||[];const fromArr=Array.isArray(arr)?(arr.find((item)=>item?.image?.url)?.image?.url||''):'';const legacy=j?.hero?.heroImage?.url||'';process.stdout.write(fromArr||legacy);" "$SITE_SETTINGS_JSON")"
+[[ -n "$HERO_URL" ]] || fail "site-settings hero image URL is empty"
 HERO_URL_ALT=""
 if [[ "$HERO_URL" == /* ]]; then
   HERO_URL_ALT="${BASE_URL%/}${HERO_URL}"

@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
       slug: "site-settings",
       data: {
         hero: {
+          heroImages: [{ image: heroMedia.id }],
           heroImage: heroMedia.id,
           titleZh: "DeepChinaTrip",
           titleEn: "DeepChinaTrip",

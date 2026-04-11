@@ -96,6 +96,7 @@ fi
 
 log "Running db schema migration..."
 npm run migrate:media
+npm run migrate:site-settings
 npm run migrate:routes
 
 log "Building project..."

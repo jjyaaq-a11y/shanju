@@ -5,7 +5,6 @@ const PAYLOAD_API =
   process.env.PAYLOAD_URL || process.env.NEXT_PUBLIC_PAYLOAD_URL || "http://localhost:3000";
 export type LocaleKey = "zh" | "en";
 
-/** Extract plain text from Lexical JSON */
 function lexicalToText(node: unknown): string {
   if (!node || typeof node !== "object") return "";
   const obj = node as Record<string, unknown>;
@@ -17,6 +16,8 @@ function lexicalToText(node: unknown): string {
   return "";
 }
 
+export type RouteTextBlock = { zh: string; en: string };
+
 export type Route = {
   id: string;
   name: { zh: string; en: string };
@@ -24,15 +25,11 @@ export type Route = {
   daysCount: number;
   overview: { zh: string; en: string };
   pricePerGroup: Record<2 | 3 | 4 | 5 | 6, number>;
-  /** 每人每天基础价（由 pricePerGroup 推导，用于定制页预算计算） */
   basePricePerPersonPerDay: number;
   image: MediaAsset;
-  dayDescriptions: { zh: string; en: string }[];
-  /** 每天多张图片：dayImages[dayIndex] = [url1, url2] */
+  dayTextBlocks: RouteTextBlock[][];
   dayImages: MediaAsset[][];
-  /** 行程包含的服务列表（我们提供） */
   whatsIncluded: { zh: string[]; en: string[] };
-  /** 旅游注意事项 */
   travelTips: { zh: string; en: string };
 };
 
@@ -52,11 +49,17 @@ function formatDays(daysCount: number, locale: LocaleKey): string {
     : `${daysCount}D ${nights}N`;
 }
 
+type DayTextBlockItem = {
+  descriptionZh?: unknown;
+  descriptionEn?: unknown;
+};
+
 type DayItineraryItem = {
   description?: unknown;
   descriptionZh?: unknown;
   descriptionEn?: unknown;
   images?: Array<{ image?: unknown }>;
+  textBlocks?: DayTextBlockItem[];
 };
 
 type PrRoute = PayloadRoute & {
@@ -92,17 +95,36 @@ function englishNameFromSlug(slug?: string | null): string {
     .join(" ");
 }
 
-function mapPayloadRouteToRoute(pr: PrRoute): Route {
+function mapDayTextBlocks(day: DayItineraryItem): RouteTextBlock[] {
+  const textBlocks = Array.isArray(day.textBlocks)
+    ? day.textBlocks
+        .map((block) => ({
+          zh: richTextToPlain(block.descriptionZh),
+          en: richTextToPlain(block.descriptionEn),
+        }))
+        .filter((block) => block.zh || block.en)
+    : [];
+
+  if (textBlocks.length > 0) {
+    return textBlocks.map((block) => ({
+      zh: block.zh,
+      en: block.en || block.zh,
+    }));
+  }
+
+  const legacyZh = richTextToPlain(day.descriptionZh) || richTextToPlain(day.description);
+  const legacyEn = richTextToPlain(day.descriptionEn) || legacyZh;
+  if (!legacyZh && !legacyEn) return [];
+  return [{ zh: legacyZh, en: legacyEn }];
+}
+
+export function mapPayloadRouteToRoute(pr: PrRoute): Route {
   const nameZh = pr.name || "";
   const nameEn = pr.nameEn?.trim() || englishNameFromSlug(pr.slug) || nameZh;
   const daysCount = pr.daysCount ?? 0;
   const dayItinerary = pr.dayItinerary ?? [];
 
-  const dayDescriptions: { zh: string; en: string }[] = dayItinerary.map((day: DayItineraryItem) => {
-    const zhText = richTextToPlain(day.descriptionZh) || richTextToPlain(day.description);
-    const enText = richTextToPlain(day.descriptionEn) || zhText;
-    return { zh: zhText, en: enText };
-  });
+  const dayTextBlocks = dayItinerary.map((day) => mapDayTextBlocks(day));
 
   const dayImagesList: MediaAsset[][] = dayItinerary.map((day: DayItineraryItem) => {
     return (day.images ?? [])
@@ -141,7 +163,7 @@ function mapPayloadRouteToRoute(pr: PrRoute): Route {
     pricePerGroup,
     basePricePerPersonPerDay,
     image: imageAsset,
-    dayDescriptions,
+    dayTextBlocks,
     dayImages: dayImagesList,
     whatsIncluded: { zh: includedItemsZh, en: includedItemsEn },
     travelTips: {
@@ -151,15 +173,21 @@ function mapPayloadRouteToRoute(pr: PrRoute): Route {
   };
 }
 
-/** Merge zh and en API responses to get full dayDescriptions */
-function mergeDayDescriptions(
-  zhDescs: { zh: string; en: string }[],
-  enDescs: { zh: string; en: string }[]
-): { zh: string; en: string }[] {
-  return zhDescs.map((z, i) => ({
-    zh: z.zh || (enDescs[i]?.zh ?? ""),
-    en: (enDescs[i]?.en ?? "") || z.en,
-  }));
+function mergeDayTextBlocks(
+  zhBlocks: RouteTextBlock[][],
+  enBlocks: RouteTextBlock[][]
+): RouteTextBlock[][] {
+  const maxDays = Math.max(zhBlocks.length, enBlocks.length);
+  return Array.from({ length: maxDays }, (_, dayIndex) => {
+    const zhDay = zhBlocks[dayIndex] ?? [];
+    const enDay = enBlocks[dayIndex] ?? [];
+    const maxBlocks = Math.max(zhDay.length, enDay.length);
+
+    return Array.from({ length: maxBlocks }, (_, blockIndex) => ({
+      zh: zhDay[blockIndex]?.zh || enDay[blockIndex]?.zh || "",
+      en: enDay[blockIndex]?.en || zhDay[blockIndex]?.en || zhDay[blockIndex]?.zh || "",
+    })).filter((block) => block.zh || block.en);
+  });
 }
 
 export async function getRoutesPage(
@@ -169,7 +197,7 @@ export async function getRoutesPage(
 ): Promise<RouteListResult> {
   try {
     const url = new URL(`${PAYLOAD_API}/api/routes`);
-    url.searchParams.set("depth", "3");
+    url.searchParams.set("depth", "4");
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("page", String(page));
     url.searchParams.set("locale", locale);
@@ -222,11 +250,11 @@ export async function getRouteBySlug(
   try {
     const [resZh, resEn] = await Promise.all([
       fetch(
-        `${PAYLOAD_API}/api/routes?where[slug][equals]=${encodeURIComponent(slug)}&depth=3&limit=1&locale=zh&fallbackLocale=zh`,
+        `${PAYLOAD_API}/api/routes?where[slug][equals]=${encodeURIComponent(slug)}&depth=4&limit=1&locale=zh&fallbackLocale=zh`,
         { cache: "no-store", headers: { "Content-Type": "application/json" } }
       ),
       fetch(
-        `${PAYLOAD_API}/api/routes?where[slug][equals]=${encodeURIComponent(slug)}&depth=3&limit=1&locale=en&fallbackLocale=zh`,
+        `${PAYLOAD_API}/api/routes?where[slug][equals]=${encodeURIComponent(slug)}&depth=4&limit=1&locale=en&fallbackLocale=zh`,
         { cache: "no-store", headers: { "Content-Type": "application/json" } }
       ),
     ]);
@@ -237,21 +265,14 @@ export async function getRouteBySlug(
     const pr = dataZh?.docs?.[0] as PrRoute | undefined;
     if (!pr) return null;
 
-    const dayItinerary = (pr.dayItinerary ?? []) as DayItineraryItem[];
-    const dayDescriptionsZh = dayItinerary.map((day) => ({
-      zh: richTextToPlain(day.descriptionZh) || richTextToPlain(day.description),
-      en: "",
-    }));
-    const docEn = dataEn?.docs?.[0];
+    const dayItineraryZh = (pr.dayItinerary ?? []) as DayItineraryItem[];
+    const dayTextBlocksZh = dayItineraryZh.map((day) => mapDayTextBlocks(day));
+    const docEn = dataEn?.docs?.[0] as PrRoute | undefined;
     const dayItineraryEn = (docEn?.dayItinerary ?? []) as DayItineraryItem[];
-    const dayDescriptionsEn = dayItineraryEn.map((day) => ({
-      zh: "",
-      en: richTextToPlain(day.descriptionEn) || richTextToPlain(day.descriptionZh) || richTextToPlain(day.description),
-    }));
+    const dayTextBlocksEn = dayItineraryEn.map((day) => mapDayTextBlocks(day));
+    const merged = mergeDayTextBlocks(dayTextBlocksZh, dayTextBlocksEn);
 
-    const merged = mergeDayDescriptions(dayDescriptionsZh, dayDescriptionsEn);
-
-    const dayImagesList: MediaAsset[][] = dayItinerary.map((day: DayItineraryItem) => {
+    const dayImagesList: MediaAsset[][] = dayItineraryZh.map((day: DayItineraryItem) => {
       return (day.images ?? [])
         .map((item) => getMediaAsset(item.image))
         .filter((asset): asset is MediaAsset => Boolean(asset.url));
@@ -261,7 +282,6 @@ export async function getRouteBySlug(
     const daysSafe = Math.max(1, pr.daysCount ?? 0);
     const basePricePerPersonPerDay = (pr.price_2_people ?? 0) / daysSafe;
 
-    // 分别提取中英文 whatsIncluded
     const prZh = pr as PrRoute;
     const prEnDoc = docEn as PrRoute | undefined;
     const nameZh = prZh.name ?? "";
@@ -294,7 +314,7 @@ export async function getRouteBySlug(
       },
       basePricePerPersonPerDay,
       image: imageAsset,
-      dayDescriptions: merged,
+      dayTextBlocks: merged,
       dayImages: dayImagesList,
       whatsIncluded: {
         zh: whatsIncludedZh.length > 0 ? whatsIncludedZh : whatsIncludedEn,

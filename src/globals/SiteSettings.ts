@@ -37,11 +37,28 @@ export const SiteSettings: GlobalConfig = {
       label: "Hero 横幅",
       fields: [
         {
+          name: "heroImages",
+          type: "array",
+          label: "轮播背景图",
+          minRows: 1,
+          maxRows: 5,
+          admin: { description: "首页 Hero 最多 5 张图，前台会自动轮播。" },
+          fields: [
+            {
+              name: "image",
+              type: "upload",
+              relationTo: "media",
+              label: "背景图片",
+              admin: { description: "建议宽度 1920px 以上的横版图片" },
+            },
+          ],
+        },
+        {
           name: "heroImage",
           type: "upload",
           relationTo: "media",
-          label: "背景图片",
-          admin: { description: "建议宽度 1920px 以上的横版图片" },
+          label: "旧版背景图片（兼容）",
+          admin: { hidden: true },
         },
         bilingualTextRow("titleZh", "titleEn", "主标题（中文）", "Main Title (EN)"),
         bilingualTextRow("taglineZh", "taglineEn", "主标语（中文）", "Tagline (EN)"),

@@ -6,7 +6,7 @@ const PAYLOAD_API =
   process.env.PAYLOAD_URL || process.env.NEXT_PUBLIC_PAYLOAD_URL || "http://localhost:3000";
 
 export type SiteHero = {
-  heroImage: MediaAsset;
+  heroImages: MediaAsset[];
   title: string;
   tagline: string;
   regionSub: string;
@@ -73,6 +73,23 @@ export function pickBilingual<T extends Record<string, unknown>>(
   return String(en || old || zh || "");
 }
 
+function getHeroImages(data: Record<string, any> | undefined, defaults: SiteSettings): MediaAsset[] {
+  if (!data?.hero) return defaults.hero.heroImages;
+
+  const images = Array.isArray(data.hero.heroImages)
+    ? data.hero.heroImages
+        .map((item: Record<string, unknown>) => getMediaAsset(item.image))
+        .filter((asset: MediaAsset) => Boolean(asset.url))
+    : [];
+
+  if (images.length > 0) return images;
+
+  const legacyImage = getMediaAsset(data.hero.heroImage);
+  if (legacyImage.url) return [legacyImage];
+
+  return defaults.hero.heroImages;
+}
+
 export function mapSiteSettingsData(
   data: Record<string, any> | undefined,
   locale: "zh" | "en",
@@ -92,7 +109,7 @@ export function mapSiteSettingsData(
 
   return {
     hero: {
-      heroImage: data.hero?.heroImage ? getMediaAsset(data.hero.heroImage) : defaults.hero.heroImage,
+      heroImages: getHeroImages(data, defaults),
       title: pickBilingual(data.hero, "title", locale) || defaults.hero.title,
       tagline: pickBilingual(data.hero, "tagline", locale) || defaults.hero.tagline,
       regionSub: pickBilingual(data.hero, "regionSub", locale) || defaults.hero.regionSub,
@@ -132,12 +149,11 @@ export function mapSiteSettingsData(
   };
 }
 
-/** 兜底数据：DB 为空时回退到 locale 文件中的默认值 */
 function getDefaults(locale: "zh" | "en"): SiteSettings {
   const t = locale === "zh" ? zh : en;
   return {
     hero: {
-      heroImage: EMPTY_MEDIA_ASSET,
+      heroImages: [EMPTY_MEDIA_ASSET],
       title: t.hero.title,
       tagline: t.hero.tagline,
       regionSub: t.hero.regionSub,
@@ -183,7 +199,7 @@ function getDefaults(locale: "zh" | "en"): SiteSettings {
 export async function getSiteSettings(locale: "zh" | "en" = "zh"): Promise<SiteSettings> {
   const defaults = getDefaults(locale);
   try {
-    const url = `${PAYLOAD_API}/api/globals/site-settings?locale=${locale}&fallbackLocale=zh&depth=2`;
+    const url = `${PAYLOAD_API}/api/globals/site-settings?locale=${locale}&fallbackLocale=zh&depth=3`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return defaults;
     const data = await res.json();

@@ -19,8 +19,7 @@ export const Routes: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      ({ data, operation }) => {
-        // 只在 slug 为空时自动生成，手动填写的值不覆盖
+      ({ data }) => {
         if (data?.name && !data?.slug) {
           data.slug = slugify(data.name);
         }
@@ -29,7 +28,13 @@ export const Routes: CollectionConfig = {
           const n = Math.round(days);
           const arr = Array.isArray(data.dayItinerary) ? [...data.dayItinerary] : [];
           while (arr.length < n) {
-            arr.push({ images: [], descriptionZh: null, descriptionEn: null, description: null });
+            arr.push({
+              images: [],
+              textBlocks: [],
+              descriptionZh: null,
+              descriptionEn: null,
+              description: null,
+            });
           }
           data.dayItinerary = arr.slice(0, n);
         }
@@ -95,7 +100,6 @@ export const Routes: CollectionConfig = {
     { name: "price_4_people", type: "number", required: true, label: "4 人 每人（美金）", min: 0 },
     { name: "price_5_people", type: "number", required: true, label: "5 人 每人（美金）", min: 0 },
     { name: "price_6_people", type: "number", required: true, label: "6 人 每人（美金）", min: 0 },
-    // ─── 行程包含（我们提供） ─────────────────────────────────────
     {
       name: "whatsIncluded",
       type: "array",
@@ -123,25 +127,22 @@ export const Routes: CollectionConfig = {
         },
       ],
     },
-
-    // ─── 旅游注意事项 ─────────────────────────────────────────────
     { name: "travelTipsZh", type: "textarea", label: "旅游注意事项（中文）", admin: { description: "高原反应、季节温度、衣物建议等。" } },
     { name: "travelTipsEn", type: "textarea", label: "Travel Tips (EN)" },
-
     {
       name: "dayItinerary",
       type: "array",
       label: "每日行程",
       admin: {
-        description: "根据行程天数自动匹配。每天可上传图片，描述须填写中英文。",
+        description: "根据行程天数自动匹配。每天最多 5 张图，并可拆成多段中英文描述。",
       },
       fields: [
         {
           name: "images",
           type: "array",
           label: "当天图片（上传）",
-          maxRows: 2,
-          admin: { description: "每天 0–2 张" },
+          maxRows: 5,
+          admin: { description: "每天 0–5 张" },
           fields: [
             {
               name: "image",
@@ -152,21 +153,53 @@ export const Routes: CollectionConfig = {
           ],
         },
         {
+          name: "textBlocks",
+          type: "array",
+          label: "当天多段描述",
+          admin: { description: "一天可写多段文案，每段同时填写中英文。" },
+          fields: [
+            {
+              type: "row",
+              fields: [
+                {
+                  name: "descriptionZh",
+                  type: "richText",
+                  label: "段落描述（中文）",
+                  admin: { width: "50%" },
+                },
+                {
+                  name: "descriptionEn",
+                  type: "richText",
+                  label: "Paragraph Description (EN)",
+                  admin: { width: "50%" },
+                },
+              ],
+            },
+          ],
+        },
+        {
           type: "row",
           fields: [
             {
               name: "descriptionZh",
               type: "richText",
-              label: "当天描述（中文）",
-              admin: { width: "50%" },
+              label: "旧版当天描述（中文，兼容）",
+              admin: { width: "50%", hidden: true },
             },
             {
               name: "descriptionEn",
               type: "richText",
-              label: "Description (EN)",
-              admin: { width: "50%" },
+              label: "Legacy Description (EN)",
+              admin: { width: "50%", hidden: true },
             },
           ],
+        },
+        {
+          name: "description",
+          type: "richText",
+          localized: true,
+          admin: { hidden: true },
+          label: "旧版本地化描述（兼容）",
         },
       ],
     },

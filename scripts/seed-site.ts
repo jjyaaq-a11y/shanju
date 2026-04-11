@@ -85,6 +85,7 @@ async function main() {
     locale: "zh",
     data: {
       hero: {
+        heroImages: [{ image: heroMedia.id }],
         heroImage: heroMedia.id,
         titleZh: "DeepChinaTrip",
         titleEn: "DeepChinaTrip",

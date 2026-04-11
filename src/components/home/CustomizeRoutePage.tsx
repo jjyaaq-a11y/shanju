@@ -32,10 +32,9 @@ const SEASON_FACTORS = {
   winter: 0.8,
 } as const;
 
-/** 2 人 10% off，3 人 15% off，4 人 20% off，5 人 25% off；最多 5 人。基础价按路线 route.basePricePerPersonPerDay 美金/人/天 */
 function groupDiscountMult(people: number): number {
   if (people <= 1) return 1;
-  return 1 - people * 0.05; // 2→0.9, 3→0.85, 4→0.8, 5→0.75
+  return 1 - people * 0.05;
 }
 
 type SeasonKey = keyof typeof SEASON_FACTORS;
@@ -49,6 +48,12 @@ export function CustomizeRoutePage({ route, addonsConfig }: CustomizeRoutePagePr
   const { t, locale } = useLocale();
   const localeKey = locale as "zh" | "en";
   const daysCount = route.daysCount;
+  const seasonLabels = {
+    spring: t.form.seasonSpring,
+    summer: t.form.seasonSummer,
+    autumn: t.form.seasonAutumn,
+    winter: t.form.seasonWinter,
+  } as const;
 
   const schema = z.object({
     people: z.number().min(1).max(6),
@@ -94,13 +99,12 @@ export function CustomizeRoutePage({ route, addonsConfig }: CustomizeRoutePagePr
   const photography = watch("photography");
   const guide = watch("guide");
 
-  // 人数不足时若选的是需 3+ 的车辆（两种 Business Van），自动切到默认车辆
   useEffect(() => {
     const current = addonsConfig.vehicle.find((v) => v.key === vehicle);
     if (current?.minPeople && (people ?? 1) < current.minPeople) {
       setValue("vehicle", defaultVehicle);
     }
-  }, [people, vehicle, defaultVehicle, setValue]);
+  }, [people, vehicle, defaultVehicle, setValue, addonsConfig.vehicle]);
 
   const budget = useMemo(() => {
     const p = people ?? 1;
@@ -135,6 +139,7 @@ export function CustomizeRoutePage({ route, addonsConfig }: CustomizeRoutePagePr
     defaultHotel,
     defaultVehicle,
     defaultGuide,
+    addonsConfig,
   ]);
 
   const budgetLabel = t.form.budgetRange
@@ -171,7 +176,7 @@ export function CustomizeRoutePage({ route, addonsConfig }: CustomizeRoutePagePr
         window.location.href = "/#routes";
       }
     } catch {
-      // could toast error
+      // no-op
     }
   };
 
@@ -194,9 +199,9 @@ export function CustomizeRoutePage({ route, addonsConfig }: CustomizeRoutePagePr
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl px-4 py-8 pb-16">
+      <div className="mx-auto max-w-3xl px-4 pb-16 pt-8">
         {route.image.url && (
-          <div className="relative aspect-[21/9] rounded-xl overflow-hidden bg-rock/10 mb-8">
+          <div className="relative mb-8 aspect-[16/9] overflow-hidden rounded-xl bg-rock/10">
             <CmsImage
               src={route.image.url}
               alt={route.name[localeKey]}
@@ -210,37 +215,66 @@ export function CustomizeRoutePage({ route, addonsConfig }: CustomizeRoutePagePr
             <ImageDebug label="定制页头图" src={route.image.url} />
           </div>
         )}
-        <h1 className="font-serif text-2xl md:text-3xl font-semibold text-ink mb-1">
+        <h1 className="mb-1 font-serif text-2xl font-semibold text-ink md:text-3xl">
           {route.name[localeKey]}
         </h1>
-        <p className="text-ink/85 mb-8">{route.days[localeKey]}</p>
+        <p className="mb-8 text-ink/85">{route.days[localeKey]}</p>
 
-        {/* 每日行程 */}
-        {route.dayDescriptions?.length > 0 && (
+        {route.dayTextBlocks?.length > 0 && (
           <section className="mb-12">
-            <h2 className="font-serif text-xl font-semibold text-ink mb-6">
+            <h2 className="mb-6 font-serif text-xl font-semibold text-ink">
               {t.form.dailyItinerary}
             </h2>
             <div className="space-y-5">
-              {route.dayDescriptions.map((desc, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-rock/20 bg-white/80 p-5 shadow-sm"
-                >
-                  <h3 className="font-medium text-ink mb-2">
-                    {t.form.dayLabel.replace("{n}", String(i + 1))}
-                  </h3>
-                  <p className="text-ink/90 leading-relaxed">
-                    {desc[localeKey] || desc.zh || desc.en}
-                  </p>
-                </div>
-              ))}
+              {route.dayTextBlocks.map((blocks, i) => {
+                const images = route.dayImages[i] ?? [];
+                return (
+                  <div
+                    key={i}
+                    className="overflow-hidden rounded-xl border border-rock/20 bg-white/80 shadow-sm"
+                  >
+                    {images.length > 0 && (
+                      <div className={`grid gap-2 bg-rock/10 p-2 ${images.length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"}`}>
+                        {images.map((img, j) => (
+                          <div
+                            key={`${img.url}-${j}`}
+                            className={`relative overflow-hidden rounded-lg bg-rock/10 ${images.length === 1 ? "aspect-[16/9]" : "aspect-[4/3] sm:aspect-[2/1]"}`}
+                          >
+                            <CmsImage
+                              src={img.url}
+                              alt={locale === "zh" ? `第 ${i + 1} 天图片 ${j + 1}` : `Day ${i + 1} image ${j + 1}`}
+                              fill
+                              className="object-cover"
+                              rotation={img.rotation}
+                              sizes="(max-width: 640px) 100vw, 50vw"
+                              unoptimized
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="space-y-4 p-5">
+                      <h3 className="font-medium text-ink">
+                        {t.form.dayLabel.replace("{n}", String(i + 1))}
+                      </h3>
+                      {blocks.map((block, blockIndex) => {
+                        const text = block[localeKey] || block.zh || block.en;
+                        if (!text) return null;
+                        return (
+                          <p key={`${i}-${blockIndex}`} className="leading-relaxed text-ink/90 whitespace-pre-line">
+                            {text}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
 
-        {/* 定制选项 */}
-        <h2 className="font-serif text-xl font-semibold text-ink mb-6">
+        <h2 className="mb-6 font-serif text-xl font-semibold text-ink">
           {t.form.customizeTitle}
         </h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
@@ -254,13 +288,11 @@ export function CustomizeRoutePage({ route, addonsConfig }: CustomizeRoutePagePr
                 <SelectValue placeholder={t.form.peoplePlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: 6 }, (_, i) => i + 1).map(
-                  (n) => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n}
-                    </SelectItem>
-                  )
-                )}
+                {Array.from({ length: 6 }, (_, i) => i + 1).map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {errors.people && (
@@ -278,59 +310,54 @@ export function CustomizeRoutePage({ route, addonsConfig }: CustomizeRoutePagePr
                 <SelectValue placeholder={t.form.seasonPlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="spring">{t.form.seasonSpring}</SelectItem>
-                <SelectItem value="summer">{t.form.seasonSummer}</SelectItem>
-                <SelectItem value="autumn">{t.form.seasonAutumn}</SelectItem>
-                <SelectItem value="winter">{t.form.seasonWinter}</SelectItem>
+                {(["spring", "summer", "autumn", "winter"] as const).map((key) => (
+                  <SelectItem key={key} value={key}>
+                    {seasonLabels[key]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </section>
 
-          <section className="space-y-3">
-            <h2 className="font-serif text-lg font-semibold text-ink">
-              {t.form.hotelLabel}
-            </h2>
+          <section className="space-y-4">
+            <h3 className="font-serif text-lg font-semibold text-ink">{t.form.hotelLabel}</h3>
             <div className="space-y-3">
               {addonsConfig.hotel.map((item) => {
-                const { label, desc } = getAddonLocale(addonsLocale, item.labelKey);
+                const copy = getAddonLocale(addonsLocale, item.key);
                 return (
                   <AddonOptionBlock
                     key={item.key}
                     item={item}
                     price={item.pricePerDay * daysCount}
-                    label={label}
-                    desc={desc}
+                    label={copy.label}
+                    desc={copy.desc}
                     type="radio"
-                    name="hotel"
-                    checked={(hotel ?? defaultHotel) === item.key}
+                    checked={hotel === item.key}
                     onChecked={() => setValue("hotel", item.key)}
+                    name="hotel"
                   />
                 );
               })}
             </div>
           </section>
 
-          <section className="space-y-3">
-            <h2 className="font-serif text-lg font-semibold text-ink">
-              {t.form.vehicleLabel}
-            </h2>
-            <p className="text-sm text-ink/80">{t.form.vehicleDesc}</p>
+          <section className="space-y-4">
+            <h3 className="font-serif text-lg font-semibold text-ink">{t.form.vehicleLabel}</h3>
             <div className="space-y-3">
               {addonsConfig.vehicle.map((item) => {
-                const { label, desc } = getAddonLocale(addonsLocale, item.labelKey);
-                const minPeople = item.minPeople ?? 0;
-                const disabled = minPeople > 0 && (people ?? 1) < minPeople;
+                const copy = getAddonLocale(addonsLocale, item.key);
+                const disabled = Boolean(item.minPeople && (people ?? 1) < item.minPeople);
                 return (
                   <AddonOptionBlock
                     key={item.key}
                     item={item}
                     price={item.pricePerDay * daysCount}
-                    label={label}
-                    desc={desc}
+                    label={copy.label}
+                    desc={copy.desc}
                     type="radio"
-                    name="vehicle"
-                    checked={(vehicle ?? defaultVehicle) === item.key}
+                    checked={vehicle === item.key}
                     onChecked={() => setValue("vehicle", item.key)}
+                    name="vehicle"
                     disabled={disabled}
                     hint={disabled ? t.form.vehicleMinPeople : undefined}
                   />
@@ -339,48 +366,43 @@ export function CustomizeRoutePage({ route, addonsConfig }: CustomizeRoutePagePr
             </div>
           </section>
 
-          <section className="space-y-3">
-            <h2 className="font-serif text-lg font-semibold text-ink">
-              {t.form.photographyLabel}
-            </h2>
+          <section className="space-y-4">
+            <h3 className="font-serif text-lg font-semibold text-ink">{t.form.photographyLabel}</h3>
             <div className="space-y-3">
               {addonsConfig.photography.map((item) => {
-                const { label, desc } = getAddonLocale(addonsLocale, item.labelKey);
+                const copy = getAddonLocale(addonsLocale, item.key);
                 return (
                   <AddonOptionBlock
                     key={item.key}
                     item={item}
                     price={item.pricePerDay * daysCount}
-                    label={label}
-                    desc={desc}
+                    label={copy.label}
+                    desc={copy.desc}
                     type="checkbox"
                     checked={(photography ?? []).includes(item.key)}
                     onChecked={(checked) => togglePhotography(item.key, checked)}
-                    showImage={false}
                   />
                 );
               })}
             </div>
           </section>
 
-          <section className="space-y-3">
-            <h2 className="font-serif text-lg font-semibold text-ink">
-              {t.form.guideLabel}
-            </h2>
+          <section className="space-y-4">
+            <h3 className="font-serif text-lg font-semibold text-ink">{t.form.guideLabel}</h3>
             <div className="space-y-3">
               {addonsConfig.guide.map((item) => {
-                const { label, desc } = getAddonLocale(addonsLocale, item.labelKey);
+                const copy = getAddonLocale(addonsLocale, item.key);
                 return (
                   <AddonOptionBlock
                     key={item.key}
                     item={item}
                     price={item.pricePerDay * daysCount}
-                    label={label}
-                    desc={desc}
+                    label={copy.label}
+                    desc={copy.desc}
                     type="radio"
-                    name="guide"
-                    checked={(guide ?? defaultGuide) === item.key}
+                    checked={guide === item.key}
                     onChecked={() => setValue("guide", item.key)}
+                    name="guide"
                     showImage={false}
                   />
                 );
@@ -390,37 +412,31 @@ export function CustomizeRoutePage({ route, addonsConfig }: CustomizeRoutePagePr
 
           <section className="space-y-2">
             <Label htmlFor="notes">{t.form.notes}</Label>
-            <Textarea
-              id="notes"
-              placeholder={t.form.notesPlaceholder}
-              {...register("notes")}
-              rows={4}
-              className="resize-none"
-            />
+            <Textarea id="notes" rows={5} {...register("notes")} />
           </section>
 
-          <Card className="bg-white/90 border-rock/20 shadow-sm">
-            <CardContent className="py-5">
-              <p className="text-sm font-medium text-ink/85 mb-1">
-                {t.form.budget}
-              </p>
-              <p className="font-serif text-xl text-plateau">{budgetLabel}</p>
-              <p className="text-xs text-ink/80 mt-2">{t.form.budgetNote}</p>
+          <Card className="border-plateau/20 bg-white/90 shadow-sm">
+            <CardContent className="space-y-2 p-5">
+              <p className="text-sm text-ink/70">{t.form.budget}</p>
+              <p className="font-serif text-2xl font-semibold text-plateau">{budgetLabel}</p>
             </CardContent>
           </Card>
 
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full"
-            variant="default"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? t.form.submitting : t.form.submit}
-          </Button>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <Button type="submit" size="lg" variant="wheat" disabled={isSubmitting}>
+              {t.form.submit}
+            </Button>
+            <div className="text-sm text-ink/65">
+              {locale === "zh"
+                ? "提交后我们会根据人数、季节与附加项给出正式报价。"
+                : "After submission, we will send a formal quote based on group size, season, and selected add-ons."}
+            </div>
+          </div>
         </form>
 
-        <InquiryForm className="mt-10" />
+        <div className="mt-12">
+          <InquiryForm daysCount={route.daysCount} routeName={route.name[localeKey]} />
+        </div>
       </div>
     </div>
   );
