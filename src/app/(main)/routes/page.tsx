@@ -43,46 +43,49 @@ export default async function RoutesListPage({ searchParams }: RoutesListPagePro
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {routes.docs.map((route) => (
-              <article
-                key={route.id}
-                className="overflow-hidden rounded-2xl border border-rock/20 bg-white/90 shadow-sm"
-              >
-                <Link href={`/routes/${route.id}`} className="block">
-                  <div className="relative aspect-[16/10] bg-rock/10">
-                    {route.image.url && (
-                      <CmsImage
-                        src={route.image.url}
-                        alt={route.name[locale]}
-                        fill
-                        className="object-cover"
-                        rotation={route.image.rotation}
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                        unoptimized
-                      />
-                    )}
-                  </div>
-                </Link>
-
-                <div className="p-5">
-                  <h2 className="font-serif text-xl text-ink font-semibold mb-2 line-clamp-2">
-                    <Link href={`/routes/${route.id}`} className="hover:text-plateau transition-colors">
-                      {route.name[locale]}
-                    </Link>
-                  </h2>
-                  <p className="text-sm text-ink/65 mb-2">{route.days[locale]}</p>
-                  {route.overview[locale] && (
-                    <p className="text-sm text-ink/75 line-clamp-3 mb-4">{route.overview[locale]}</p>
-                  )}
-                  <Link
-                    href={`/routes/${route.id}`}
-                    className="inline-flex items-center text-sm font-medium text-plateau hover:text-wheat transition-colors"
-                  >
-                    {locale === "zh" ? "查看详情" : "View details"}
+            {routes.docs.map((route) => {
+              const routePath = `/routes/${route.slug || route.id}`;
+              return (
+                <article
+                  key={route.id}
+                  className="overflow-hidden rounded-2xl border border-rock/20 bg-white/90 shadow-sm"
+                >
+                  <Link href={routePath} className="block">
+                    <div className="relative aspect-[16/10] bg-rock/10">
+                      {route.image.url && (
+                        <CmsImage
+                          src={route.image.url}
+                          alt={route.name[locale]}
+                          fill
+                          className="object-cover"
+                          rotation={route.image.rotation}
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                          unoptimized
+                        />
+                      )}
+                    </div>
                   </Link>
-                </div>
-              </article>
-            ))}
+
+                  <div className="p-5">
+                    <h2 className="font-serif text-xl text-ink font-semibold mb-2 line-clamp-2">
+                      <Link href={routePath} className="hover:text-plateau transition-colors">
+                        {route.name[locale]}
+                      </Link>
+                    </h2>
+                    <p className="text-sm text-ink/65 mb-2">{route.days[locale]}</p>
+                    {route.overview[locale] && (
+                      <p className="text-sm text-ink/75 line-clamp-3 mb-4">{route.overview[locale]}</p>
+                    )}
+                    <Link
+                      href={routePath}
+                      className="inline-flex items-center text-sm font-medium text-plateau hover:text-wheat transition-colors"
+                    >
+                      {locale === "zh" ? "查看详情" : "View details"}
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
           </div>
 
           {routes.totalDocs === 0 && (

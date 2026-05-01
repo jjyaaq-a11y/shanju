@@ -13,6 +13,9 @@ export function RouteDetailPage({ route }: RouteDetailPageProps) {
   const { t, locale } = useLocale();
   const localeKey = locale as "zh" | "en";
 
+  const getSectionImageFrameClass = (imageIndex: number) =>
+    imageIndex === 0 ? "aspect-[16/10] md:aspect-[16/9]" : "aspect-[4/3] md:aspect-[16/10]";
+
   return (
     <div className="min-h-screen bg-cream">
       <div className="border-b border-rock/10 bg-cream/95 backdrop-blur">
@@ -58,51 +61,76 @@ export function RouteDetailPage({ route }: RouteDetailPageProps) {
               </section>
             )}
 
-            {route.dayTextBlocks?.length > 0 && (
+            {route.daySections?.length > 0 && (
               <section className="mb-12">
                 <h2 className="mb-6 font-serif text-xl font-semibold text-ink">
                   {t.form.dailyItinerary}
                 </h2>
                 <div className="space-y-8">
-                  {route.dayTextBlocks.map((blocks, i) => {
-                    const images = route.dayImages[i] ?? [];
+                  {route.daySections.map((sections, i) => {
                     return (
                       <div
                         key={i}
                         className="overflow-hidden rounded-xl border border-rock/20 bg-white/90 shadow-sm"
                       >
-                        {images.length > 0 && (
-                          <div className={`grid gap-2 bg-rock/10 p-2 ${images.length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"}`}>
-                            {images.map((img, j) => (
-                              <div
-                                key={`${img.url}-${j}`}
-                                className={`relative overflow-hidden rounded-lg bg-rock/10 ${images.length === 1 ? "aspect-[16/9]" : "aspect-[4/3] sm:aspect-[2/1]"}`}
-                              >
-                                <CmsImage
-                                  src={img.url}
-                                  alt={locale === "zh" ? `第 ${i + 1} 天图片 ${j + 1}` : `Day ${i + 1} image ${j + 1}`}
-                                  fill
-                                  className="object-cover"
-                                  rotation={img.rotation}
-                                  sizes="(max-width: 640px) 100vw, (max-width: 1280px) 32vw, 420px"
-                                  unoptimized
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
                         <div className="p-5">
                           <h3 className="mb-4 font-medium text-ink">
                             {t.form.dayLabel.replace("{n}", String(i + 1))}
                           </h3>
-                          <div className="space-y-4">
-                            {blocks.map((block, blockIndex) => {
-                              const text = block[localeKey] || block.zh || block.en;
-                              if (!text) return null;
+                          <div className="space-y-8">
+                            {sections.map((section, sectionIndex) => {
+                              const title =
+                                section.title[localeKey] ||
+                                section.title.zh ||
+                                section.title.en;
+                              const description =
+                                section.description[localeKey] ||
+                                section.description.zh ||
+                                section.description.en;
+                              const images = section.images ?? [];
+                              if (!title && !description && images.length === 0) return null;
                               return (
-                                <p key={`${i}-${blockIndex}`} className="leading-relaxed text-ink/90 whitespace-pre-line">
-                                  {text}
-                                </p>
+                                <div
+                                  key={`${i}-${sectionIndex}`}
+                                  className="space-y-4 border-t border-rock/10 pt-6 first:border-t-0 first:pt-0"
+                                >
+                                  {title && (
+                                    <h4 className="font-medium text-ink/95">
+                                      {sectionIndex + 1}. {title}
+                                    </h4>
+                                  )}
+                                  {description && (
+                                    <p className="whitespace-pre-line leading-relaxed text-ink/90">
+                                      {description}
+                                    </p>
+                                  )}
+                                  {images.length > 0 && (
+                                    <div className="space-y-3">
+                                      {images.map((img, imageIndex) => (
+                                        <div
+                                          key={`${img.url}-${imageIndex}`}
+                                          className={`relative overflow-hidden rounded-lg bg-rock/10 ${getSectionImageFrameClass(
+                                            imageIndex,
+                                          )}`}
+                                        >
+                                          <CmsImage
+                                            src={img.url}
+                                            alt={
+                                              locale === "zh"
+                                                ? `第 ${i + 1} 天第 ${sectionIndex + 1} 段图片 ${imageIndex + 1}`
+                                                : `Day ${i + 1} section ${sectionIndex + 1} image ${imageIndex + 1}`
+                                            }
+                                            fill
+                                            className="object-cover"
+                                            rotation={img.rotation}
+                                            sizes="(max-width: 1280px) 100vw, 820px"
+                                            unoptimized
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>

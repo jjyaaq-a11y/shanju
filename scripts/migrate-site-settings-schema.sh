@@ -60,8 +60,8 @@ for col in title_zh title_en desc_zh desc_en; do
   add_col site_settings_why_items "$col" text
 done
 
-create_table_if_missing "site_settings_hero_images" "
-CREATE TABLE site_settings_hero_images (
+create_table_if_missing "site_settings_hero_hero_images" "
+CREATE TABLE site_settings_hero_hero_images (
   _order integer NOT NULL,
   _parent_id integer NOT NULL,
   id text PRIMARY KEY NOT NULL,
@@ -69,12 +69,25 @@ CREATE TABLE site_settings_hero_images (
   FOREIGN KEY (image_id) REFERENCES media(id) ON UPDATE no action ON DELETE set null,
   FOREIGN KEY (_parent_id) REFERENCES site_settings(id) ON UPDATE no action ON DELETE cascade
 );"
-create_index_if_missing "site_settings_hero_images_order_idx" \
-  "CREATE INDEX site_settings_hero_images_order_idx ON site_settings_hero_images (_order);"
-create_index_if_missing "site_settings_hero_images_parent_id_idx" \
-  "CREATE INDEX site_settings_hero_images_parent_id_idx ON site_settings_hero_images (_parent_id);"
-create_index_if_missing "site_settings_hero_images_image_idx" \
-  "CREATE INDEX site_settings_hero_images_image_idx ON site_settings_hero_images (image_id);"
+create_index_if_missing "site_settings_hero_hero_images_order_idx" \
+  "CREATE INDEX site_settings_hero_hero_images_order_idx ON site_settings_hero_hero_images (_order);"
+create_index_if_missing "site_settings_hero_hero_images_parent_id_idx" \
+  "CREATE INDEX site_settings_hero_hero_images_parent_id_idx ON site_settings_hero_hero_images (_parent_id);"
+create_index_if_missing "site_settings_hero_hero_images_image_idx" \
+  "CREATE INDEX site_settings_hero_hero_images_image_idx ON site_settings_hero_hero_images (image_id);"
+
+if sqlite3 "$DB" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='site_settings_hero_images';" | grep -q 1; then
+  sqlite3 "$DB" <<'SQL'
+INSERT INTO site_settings_hero_hero_images (_order, _parent_id, id, image_id)
+SELECT legacy._order, legacy._parent_id, legacy.id, legacy.image_id
+FROM site_settings_hero_images legacy
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM site_settings_hero_hero_images current
+  WHERE current.id = legacy.id
+);
+SQL
+fi
 
 if sqlite3 "$DB" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='site_settings_locales';" | grep -q 1; then
   while IFS='|' read -r new_col old_col; do
@@ -230,7 +243,7 @@ SQL
 fi
 
 sqlite3 "$DB" <<'SQL'
-INSERT INTO site_settings_hero_images (_order, _parent_id, id, image_id)
+INSERT INTO site_settings_hero_hero_images (_order, _parent_id, id, image_id)
 SELECT
   0,
   s.id,
@@ -240,7 +253,7 @@ FROM site_settings s
 WHERE s.hero_hero_image_id IS NOT NULL
   AND NOT EXISTS (
     SELECT 1
-    FROM site_settings_hero_images hi
+    FROM site_settings_hero_hero_images hi
     WHERE hi._parent_id = s.id
   );
 SQL

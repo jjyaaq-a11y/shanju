@@ -54,50 +54,53 @@ export function SectionRoutes({ routes }: SectionRoutesProps) {
           whileInView="show"
           viewport={{ once: true, margin: "-60px" }}
         >
-          {routes.map((route) => (
-            <motion.div key={route.id} variants={item}>
-              <Card
-                className={cn(
-                  "group overflow-hidden border-rock/15 h-full flex flex-col",
-                  "hover:shadow-xl hover:shadow-rock/10 transition-all duration-500 hover:scale-[1.02]"
-                )}
-              >
-                <div className="relative aspect-[4/5] overflow-hidden bg-rock/10">
-                  {route.image.url && (
-                    <>
-                      <CmsImage
-                        src={route.image.url}
-                        alt={route.name[localeKey]}
-                        fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
-                        rotation={route.image.rotation}
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        unoptimized
-                      />
-                      <ImageDebug label={`route:${route.id}`} src={route.image.url} />
-                    </>
+          {routes.map((route) => {
+            const routePath = `/routes/${route.slug || route.id}`;
+            return (
+              <motion.div key={route.id} variants={item}>
+                <Card
+                  className={cn(
+                    "group overflow-hidden border-rock/15 h-full flex flex-col",
+                    "hover:shadow-xl hover:shadow-rock/10 transition-all duration-500 hover:scale-[1.02]"
                   )}
-                </div>
-                <CardContent className="p-5 flex-1 flex flex-col">
-                  <h3 className="font-serif text-lg font-semibold text-ink mb-1 group-hover:text-plateau transition-colors">
-                    {route.name[localeKey]}
-                  </h3>
-                  <p className="text-ink/80 text-sm mb-4">
-                    {route.days[localeKey]} · {t.form.guestsRange}
-                  </p>
-                  <Button
-                    variant="wheat"
-                    className="mt-auto w-full"
-                    asChild
-                  >
-                    <Link href={`/routes/${route.id}`} prefetch={true}>
-                      {t.form.viewRoute}
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                >
+                  <div className="relative aspect-[4/5] overflow-hidden bg-rock/10">
+                    {route.image.url && (
+                      <>
+                        <CmsImage
+                          src={route.image.url}
+                          alt={route.name[localeKey]}
+                          fill
+                          className="object-cover transition-transform duration-700 group-hover:scale-110"
+                          rotation={route.image.rotation}
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          unoptimized
+                        />
+                        <ImageDebug label={`route:${route.id}`} src={route.image.url} />
+                      </>
+                    )}
+                  </div>
+                  <CardContent className="p-5 flex-1 flex flex-col">
+                    <h3 className="font-serif text-lg font-semibold text-ink mb-1 group-hover:text-plateau transition-colors">
+                      {route.name[localeKey]}
+                    </h3>
+                    <p className="text-ink/80 text-sm mb-4">
+                      {route.days[localeKey]} · {t.form.guestsRange}
+                    </p>
+                    <Button
+                      variant="wheat"
+                      className="mt-auto w-full"
+                      asChild
+                    >
+                      <Link href={routePath} prefetch={true}>
+                        {t.form.viewRoute}
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
         </motion.div>
       </div>
     </section>

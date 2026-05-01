@@ -17,6 +17,11 @@ function lexicalToText(node: unknown): string {
 }
 
 export type RouteTextBlock = { zh: string; en: string };
+export type RouteItinerarySection = {
+  title: { zh: string; en: string };
+  description: { zh: string; en: string };
+  images: MediaAsset[];
+};
 
 export type Route = {
   id: string;
@@ -27,8 +32,7 @@ export type Route = {
   pricePerGroup: Record<2 | 3 | 4 | 5 | 6, number>;
   basePricePerPersonPerDay: number;
   image: MediaAsset;
-  dayTextBlocks: RouteTextBlock[][];
-  dayImages: MediaAsset[][];
+  daySections: RouteItinerarySection[][];
   whatsIncluded: { zh: string[]; en: string[] };
   travelTips: { zh: string; en: string };
 };
@@ -54,12 +58,21 @@ type DayTextBlockItem = {
   descriptionEn?: unknown;
 };
 
+type DaySectionItem = {
+  titleZh?: unknown;
+  titleEn?: unknown;
+  descriptionZh?: unknown;
+  descriptionEn?: unknown;
+  images?: Array<{ image?: unknown }>;
+};
+
 type DayItineraryItem = {
   description?: unknown;
   descriptionZh?: unknown;
   descriptionEn?: unknown;
   images?: Array<{ image?: unknown }>;
   textBlocks?: DayTextBlockItem[];
+  sections?: DaySectionItem[];
 };
 
 type PrRoute = PayloadRoute & {
@@ -118,19 +131,68 @@ function mapDayTextBlocks(day: DayItineraryItem): RouteTextBlock[] {
   return [{ zh: legacyZh, en: legacyEn }];
 }
 
+function mapSectionImages(images: Array<{ image?: unknown }> | undefined): MediaAsset[] {
+  return (images ?? [])
+    .map((item) => getMediaAsset(item.image))
+    .filter((asset): asset is MediaAsset => Boolean(asset.url));
+}
+
+function mapDaySections(day: DayItineraryItem): RouteItinerarySection[] {
+  const sections = Array.isArray(day.sections)
+    ? day.sections
+        .map((section) => {
+          const titleZh = typeof section.titleZh === "string" ? section.titleZh : "";
+          const titleEn = typeof section.titleEn === "string" ? section.titleEn : "";
+          const descriptionZh = richTextToPlain(section.descriptionZh);
+          const descriptionEn = richTextToPlain(section.descriptionEn);
+          const images = mapSectionImages(section.images);
+
+          return {
+            title: {
+              zh: titleZh,
+              en: titleEn || titleZh,
+            },
+            description: {
+              zh: descriptionZh,
+              en: descriptionEn || descriptionZh,
+            },
+            images,
+          };
+        })
+        .filter(
+          (section) =>
+            section.title.zh ||
+            section.title.en ||
+            section.description.zh ||
+            section.description.en ||
+            section.images.length > 0
+        )
+    : [];
+
+  if (sections.length > 0) return sections;
+
+  const legacyTextBlocks = mapDayTextBlocks(day);
+  const legacyImages = mapSectionImages(day.images);
+  if (legacyTextBlocks.length === 0 && legacyImages.length === 0) return [];
+
+  return [
+    {
+      title: { zh: "", en: "" },
+      description: {
+        zh: legacyTextBlocks.map((block) => block.zh).filter(Boolean).join("\n\n"),
+        en: legacyTextBlocks.map((block) => block.en).filter(Boolean).join("\n\n"),
+      },
+      images: legacyImages,
+    },
+  ];
+}
+
 export function mapPayloadRouteToRoute(pr: PrRoute): Route {
   const nameZh = pr.name || "";
   const nameEn = pr.nameEn?.trim() || englishNameFromSlug(pr.slug) || nameZh;
   const daysCount = pr.daysCount ?? 0;
   const dayItinerary = pr.dayItinerary ?? [];
-
-  const dayTextBlocks = dayItinerary.map((day) => mapDayTextBlocks(day));
-
-  const dayImagesList: MediaAsset[][] = dayItinerary.map((day: DayItineraryItem) => {
-    return (day.images ?? [])
-      .map((item) => getMediaAsset(item.image))
-      .filter((asset): asset is MediaAsset => Boolean(asset.url));
-  });
+  const daySections = dayItinerary.map((day) => mapDaySections(day));
 
   const imageAsset = pr.heroImage ? getMediaAsset(pr.heroImage) : EMPTY_MEDIA_ASSET;
 
@@ -163,8 +225,7 @@ export function mapPayloadRouteToRoute(pr: PrRoute): Route {
     pricePerGroup,
     basePricePerPersonPerDay,
     image: imageAsset,
-    dayTextBlocks,
-    dayImages: dayImagesList,
+    daySections,
     whatsIncluded: { zh: includedItemsZh, en: includedItemsEn },
     travelTips: {
       zh: pr.travelTipsZh ?? pr.travelTips ?? "",
@@ -173,20 +234,54 @@ export function mapPayloadRouteToRoute(pr: PrRoute): Route {
   };
 }
 
-function mergeDayTextBlocks(
-  zhBlocks: RouteTextBlock[][],
-  enBlocks: RouteTextBlock[][]
-): RouteTextBlock[][] {
-  const maxDays = Math.max(zhBlocks.length, enBlocks.length);
+function mergeDaySections(
+  zhDays: RouteItinerarySection[][],
+  enDays: RouteItinerarySection[][]
+): RouteItinerarySection[][] {
+  const maxDays = Math.max(zhDays.length, enDays.length);
   return Array.from({ length: maxDays }, (_, dayIndex) => {
-    const zhDay = zhBlocks[dayIndex] ?? [];
-    const enDay = enBlocks[dayIndex] ?? [];
-    const maxBlocks = Math.max(zhDay.length, enDay.length);
+    const zhDay = zhDays[dayIndex] ?? [];
+    const enDay = enDays[dayIndex] ?? [];
+    const maxSections = Math.max(zhDay.length, enDay.length);
 
-    return Array.from({ length: maxBlocks }, (_, blockIndex) => ({
-      zh: zhDay[blockIndex]?.zh || enDay[blockIndex]?.zh || "",
-      en: enDay[blockIndex]?.en || zhDay[blockIndex]?.en || zhDay[blockIndex]?.zh || "",
-    })).filter((block) => block.zh || block.en);
+    return Array.from({ length: maxSections }, (_, sectionIndex) => {
+      const zhSection = zhDay[sectionIndex];
+      const enSection = enDay[sectionIndex];
+      return {
+        title: {
+          zh: zhSection?.title.zh || enSection?.title.zh || "",
+          en:
+            enSection?.title.en ||
+            zhSection?.title.en ||
+            zhSection?.title.zh ||
+            "",
+        },
+        description: {
+          zh:
+            zhSection?.description.zh ||
+            enSection?.description.zh ||
+            "",
+          en:
+            enSection?.description.en ||
+            zhSection?.description.en ||
+            zhSection?.description.zh ||
+            "",
+        },
+        images:
+          zhSection?.images?.length
+            ? zhSection.images
+            : enSection?.images?.length
+              ? enSection.images
+              : [],
+      };
+    }).filter(
+      (section) =>
+        section.title.zh ||
+        section.title.en ||
+        section.description.zh ||
+        section.description.en ||
+        section.images.length > 0
+    );
   });
 }
 
@@ -266,17 +361,11 @@ export async function getRouteBySlug(
     if (!pr) return null;
 
     const dayItineraryZh = (pr.dayItinerary ?? []) as DayItineraryItem[];
-    const dayTextBlocksZh = dayItineraryZh.map((day) => mapDayTextBlocks(day));
+    const daySectionsZh = dayItineraryZh.map((day) => mapDaySections(day));
     const docEn = dataEn?.docs?.[0] as PrRoute | undefined;
     const dayItineraryEn = (docEn?.dayItinerary ?? []) as DayItineraryItem[];
-    const dayTextBlocksEn = dayItineraryEn.map((day) => mapDayTextBlocks(day));
-    const merged = mergeDayTextBlocks(dayTextBlocksZh, dayTextBlocksEn);
-
-    const dayImagesList: MediaAsset[][] = dayItineraryZh.map((day: DayItineraryItem) => {
-      return (day.images ?? [])
-        .map((item) => getMediaAsset(item.image))
-        .filter((asset): asset is MediaAsset => Boolean(asset.url));
-    });
+    const daySectionsEn = dayItineraryEn.map((day) => mapDaySections(day));
+    const merged = mergeDaySections(daySectionsZh, daySectionsEn);
 
     const imageAsset = pr.heroImage ? getMediaAsset(pr.heroImage) : EMPTY_MEDIA_ASSET;
     const daysSafe = Math.max(1, pr.daysCount ?? 0);
@@ -314,8 +403,7 @@ export async function getRouteBySlug(
       },
       basePricePerPersonPerDay,
       image: imageAsset,
-      dayTextBlocks: merged,
-      dayImages: dayImagesList,
+      daySections: merged,
       whatsIncluded: {
         zh: whatsIncludedZh.length > 0 ? whatsIncludedZh : whatsIncludedEn,
         en: whatsIncludedEn.length > 0 ? whatsIncludedEn : whatsIncludedZh,

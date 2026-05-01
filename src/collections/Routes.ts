@@ -30,6 +30,7 @@ export const Routes: CollectionConfig = {
           while (arr.length < n) {
             arr.push({
               images: [],
+              sections: [],
               textBlocks: [],
               descriptionZh: null,
               descriptionEn: null,
@@ -134,15 +135,74 @@ export const Routes: CollectionConfig = {
       type: "array",
       label: "每日行程",
       admin: {
-        description: "根据行程天数自动匹配。每天最多 5 张图，并可拆成多段中英文描述。",
+        description: "根据行程天数自动匹配。每一天可以拆成多个内容段落，每个段落都能单独编辑标题、描述和图片。",
       },
       fields: [
+        {
+          name: "sections",
+          type: "array",
+          label: "当天内容段落",
+          admin: {
+            description: "例如：上午 / 下午 / 晚上。每个段落都可单独上传图片并填写中英文描述。",
+          },
+          fields: [
+            {
+              type: "row",
+              fields: [
+                {
+                  name: "titleZh",
+                  type: "text",
+                  label: "段落标题（中文）",
+                  admin: { width: "50%" },
+                },
+                {
+                  name: "titleEn",
+                  type: "text",
+                  label: "Section Title (EN)",
+                  admin: { width: "50%" },
+                },
+              ],
+            },
+            {
+              type: "row",
+              fields: [
+                {
+                  name: "descriptionZh",
+                  type: "richText",
+                  label: "段落描述（中文）",
+                  admin: { width: "50%" },
+                },
+                {
+                  name: "descriptionEn",
+                  type: "richText",
+                  label: "Section Description (EN)",
+                  admin: { width: "50%" },
+                },
+              ],
+            },
+            {
+              name: "images",
+              type: "array",
+              label: "段落图片",
+              maxRows: 5,
+              admin: { description: "每个段落最多 5 张图。" },
+              fields: [
+                {
+                  name: "image",
+                  type: "upload",
+                  relationTo: "media",
+                  label: "图片",
+                },
+              ],
+            },
+          ],
+        },
         {
           name: "images",
           type: "array",
           label: "当天图片（上传）",
           maxRows: 5,
-          admin: { description: "每天 0–5 张" },
+          admin: { description: "旧版字段，已隐藏兼容。", hidden: true },
           fields: [
             {
               name: "image",
@@ -156,7 +216,7 @@ export const Routes: CollectionConfig = {
           name: "textBlocks",
           type: "array",
           label: "当天多段描述",
-          admin: { description: "一天可写多段文案，每段同时填写中英文。" },
+          admin: { description: "旧版字段，已隐藏兼容。", hidden: true },
           fields: [
             {
               type: "row",

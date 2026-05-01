@@ -71,6 +71,38 @@ create_index_if_missing "routes_day_itinerary_text_blocks_order_idx" \
 create_index_if_missing "routes_day_itinerary_text_blocks_parent_id_idx" \
   "CREATE INDEX routes_day_itinerary_text_blocks_parent_id_idx ON routes_day_itinerary_text_blocks (_parent_id);"
 
+create_table_if_missing "routes_day_itinerary_sections" "
+CREATE TABLE routes_day_itinerary_sections (
+  _order integer NOT NULL,
+  _parent_id text NOT NULL,
+  id text PRIMARY KEY NOT NULL,
+  title_zh text,
+  title_en text,
+  description_zh text,
+  description_en text,
+  FOREIGN KEY (_parent_id) REFERENCES routes_day_itinerary(id) ON UPDATE no action ON DELETE cascade
+);"
+create_index_if_missing "routes_day_itinerary_sections_order_idx" \
+  "CREATE INDEX routes_day_itinerary_sections_order_idx ON routes_day_itinerary_sections (_order);"
+create_index_if_missing "routes_day_itinerary_sections_parent_id_idx" \
+  "CREATE INDEX routes_day_itinerary_sections_parent_id_idx ON routes_day_itinerary_sections (_parent_id);"
+
+create_table_if_missing "routes_day_itinerary_sections_images" "
+CREATE TABLE routes_day_itinerary_sections_images (
+  _order integer NOT NULL,
+  _parent_id text NOT NULL,
+  id text PRIMARY KEY NOT NULL,
+  image_id integer,
+  FOREIGN KEY (image_id) REFERENCES media(id) ON UPDATE no action ON DELETE set null,
+  FOREIGN KEY (_parent_id) REFERENCES routes_day_itinerary_sections(id) ON UPDATE no action ON DELETE cascade
+);"
+create_index_if_missing "routes_day_itinerary_sections_images_order_idx" \
+  "CREATE INDEX routes_day_itinerary_sections_images_order_idx ON routes_day_itinerary_sections_images (_order);"
+create_index_if_missing "routes_day_itinerary_sections_images_parent_id_idx" \
+  "CREATE INDEX routes_day_itinerary_sections_images_parent_id_idx ON routes_day_itinerary_sections_images (_parent_id);"
+create_index_if_missing "routes_day_itinerary_sections_images_image_idx" \
+  "CREATE INDEX routes_day_itinerary_sections_images_image_idx ON routes_day_itinerary_sections_images (image_id);"
+
 # 若旧的 localized 描述表仍存在，先回填到 description_zh / description_en
 if sqlite3 "$DB" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='routes_day_itinerary_locales';" | grep -q 1; then
   sqlite3 "$DB" <<'SQL'
@@ -132,6 +164,81 @@ WHERE (coalesce(trim(d.description_zh), '') <> '' OR coalesce(trim(d.description
     FROM routes_day_itinerary_text_blocks b
     WHERE b._parent_id = d.id
   );
+SQL
+
+# 将旧的一天级描述/图片迁移到新的 sections 结构中，作为第一段
+sqlite3 "$DB" <<'SQL'
+INSERT INTO routes_day_itinerary_sections (_order, _parent_id, id, title_zh, title_en, description_zh, description_en)
+SELECT
+  0,
+  d.id,
+  lower(hex(randomblob(16))),
+  NULL,
+  NULL,
+  CASE
+    WHEN EXISTS (SELECT 1 FROM routes_day_itinerary_text_blocks b WHERE b._parent_id = d.id)
+      THEN (
+        SELECT group_concat(nullif(trim(b.description_zh), ''), char(10) || char(10))
+        FROM routes_day_itinerary_text_blocks b
+        WHERE b._parent_id = d.id
+        ORDER BY b._order ASC
+      )
+    ELSE d.description_zh
+  END,
+  CASE
+    WHEN EXISTS (SELECT 1 FROM routes_day_itinerary_text_blocks b WHERE b._parent_id = d.id)
+      THEN (
+        SELECT group_concat(nullif(trim(b.description_en), ''), char(10) || char(10))
+        FROM routes_day_itinerary_text_blocks b
+        WHERE b._parent_id = d.id
+        ORDER BY b._order ASC
+      )
+    ELSE d.description_en
+  END
+FROM routes_day_itinerary d
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM routes_day_itinerary_sections s
+    WHERE s._parent_id = d.id
+  )
+  AND (
+    coalesce(trim(d.description_zh), '') <> ''
+    OR coalesce(trim(d.description_en), '') <> ''
+    OR EXISTS (
+      SELECT 1
+      FROM routes_day_itinerary_text_blocks b
+      WHERE b._parent_id = d.id
+        AND (
+          coalesce(trim(b.description_zh), '') <> ''
+          OR coalesce(trim(b.description_en), '') <> ''
+        )
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM routes_day_itinerary_images i
+      WHERE i._parent_id = d.id
+    )
+  );
+SQL
+
+# 把旧的一天级图片挂到第一段 section 下
+sqlite3 "$DB" <<'SQL'
+INSERT INTO routes_day_itinerary_sections_images (_order, _parent_id, id, image_id)
+SELECT
+  i._order,
+  s.id,
+  lower(hex(randomblob(16))),
+  i.image_id
+FROM routes_day_itinerary_images i
+JOIN routes_day_itinerary_sections s
+  ON s._parent_id = i._parent_id
+ AND s._order = 0
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM routes_day_itinerary_sections_images si
+  WHERE si._parent_id = s.id
+    AND si.image_id = i.image_id
+);
 SQL
 
 # 迁移旧数据到新列（若表仍有 base_price_per_person_per_day）
