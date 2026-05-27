@@ -55,7 +55,7 @@ export function SectionRoutes({ routes }: SectionRoutesProps) {
           viewport={{ once: true, margin: "-60px" }}
         >
           {routes.map((route) => {
-            const routePath = `/routes/${route.slug || route.id}`;
+            const routePath = `/routes/${route.id}`;
             return (
               <motion.div key={route.id} variants={item}>
                 <Card

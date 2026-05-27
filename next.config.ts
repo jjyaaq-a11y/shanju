@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 import { withPayload } from "@payloadcms/next/withPayload";
 
 const nextConfig: NextConfig = {
-  output: "standalone", // 打包成独立目录，部署时只需上传 .next/standalone + .next/static，无需整份 node_modules
   experimental: {
     serverActions: {
       bodySizeLimit: "25mb",

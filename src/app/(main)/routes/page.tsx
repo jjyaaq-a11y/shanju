@@ -44,7 +44,7 @@ export default async function RoutesListPage({ searchParams }: RoutesListPagePro
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {routes.docs.map((route) => {
-              const routePath = `/routes/${route.slug || route.id}`;
+              const routePath = `/routes/${route.id}`;
               return (
                 <article
                   key={route.id}

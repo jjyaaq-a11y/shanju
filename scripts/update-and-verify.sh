@@ -102,18 +102,6 @@ npm run migrate:routes
 log "Building project..."
 npm run build
 
-if [[ -d ".next/standalone" ]]; then
-  log "Syncing standalone static assets..."
-  rm -rf .next/standalone/.next/static
-  mkdir -p .next/standalone/.next
-  cp -r .next/static .next/standalone/.next/static
-
-  rm -rf .next/standalone/public
-  cp -r public .next/standalone/public
-else
-  log "No .next/standalone directory found, skipped standalone sync."
-fi
-
 if command -v systemctl >/dev/null 2>&1; then
   if sudo systemctl status "${SERVICE_NAME}" >/dev/null 2>&1 || sudo systemctl status "${SERVICE_NAME}.service" >/dev/null 2>&1; then
     log "Restarting service ${SERVICE_NAME}..."
